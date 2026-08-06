@@ -1,0 +1,10 @@
+/vendor/
+.env
+/storage/logs/*.log
+/storage/rate_limit/*.json
+/storage/cache/
+/storage/certs/
+.DS_Store
+composer.phar
+composer-setup.php
+public/app.php.bak
