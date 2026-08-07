@@ -181,7 +181,7 @@ if ($path === "/api/v1/download" || $path === "/api/v1/download/") {
     }
     header("Content-Type: video/mp4");
     header("Content-Length: " . filesize($storageFile));
-    header("Content-Disposition: attachment; filename="" . addslashes($file) . """);
+    header('Content-Disposition: attachment; filename="' . addslashes($file) . '"');
     header("Accept-Ranges: bytes");
     readfile($storageFile);
     exit;
