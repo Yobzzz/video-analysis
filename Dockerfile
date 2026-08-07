@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
         curl \
         ca-certificates \
+        ffmpeg \
     && docker-php-ext-install -j$(nproc) zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
