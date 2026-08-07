@@ -197,7 +197,7 @@ class VideoProcessor
         $cleanName = $this->safeName($filename) . '_processed.mp4';
 
         return [
-            'url'      => '/storage/processed/' . $cleanName,
+            'url'      => '/api/v1/download?file=' . urlencode($cleanName),
             'size'     => $size,
             'md5'      => $md5,
             'duration' => round($duration, 2),

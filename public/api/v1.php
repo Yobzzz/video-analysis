@@ -168,6 +168,24 @@ if ($path === "/api/v1/process" || $path === "/api/v1/process/") {
     }
 }
 
+
+// GET /api/v1/download?file=xxx — 下载处理后视频
+if ($path === "/api/v1/download" || $path === "/api/v1/download/") {
+    $file = trim($_GET["file"] ?? "");
+    if ($file === "" || strpos($file, "..") !== false || strpos($file, "/") !== false) {
+        Response::error("无效的文件名", 400);
+    }
+    $storageFile = __DIR__ . "/../../storage/processed/" . $file;
+    if (!file_exists($storageFile) || !is_file($storageFile)) {
+        Response::error("文件不存在", 404);
+    }
+    header("Content-Type: video/mp4");
+    header("Content-Length: " . filesize($storageFile));
+    header("Content-Disposition: attachment; filename="" . addslashes($file) . """);
+    header("Accept-Ranges: bytes");
+    readfile($storageFile);
+    exit;
+}
 // 404
 Response::error("接口不存在", 404);
 
