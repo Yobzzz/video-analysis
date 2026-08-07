@@ -1,0 +1,232 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Utils\Config;
+use App\Utils\HttpClient;
+
+/**
+ * 视频指纹处理器
+ *
+ * 下载已解析的视频 → FFmpeg 重新编码（修改画面指纹+音频指纹+MD5）
+ * 输出到 storage/processed/ 目录
+ */
+class VideoProcessor
+{
+    private string $ffmpegBin;
+    private string $outputDir;
+    private int $timeout;
+
+    public function __construct()
+    {
+        $this->ffmpegBin  = Config::get('video_processor.ffmpeg_bin', 'ffmpeg');
+        $this->outputDir  = rtrim(Config::get('video_processor.output_dir', __DIR__ . '/../../storage/processed'), '/');
+        $this->timeout    = max(60, (int) Config::get('video_processor.timeout', 600));
+
+        if (!is_dir($this->outputDir)) {
+            mkdir($this->outputDir, 0755, true);
+        }
+    }
+
+    /**
+     * 处理视频：下载 → FFmpeg重编码 → 返回处理后文件路径
+     *
+     * @param string $sourceUrl 源视频 CDN 地址
+     * @param string $filename  输出文件名（不含扩展名）
+     * @param array  $options   自定义处理参数
+     * @return array{url: string, size: int, md5: string, duration: float}
+     */
+    public function process(string $sourceUrl, string $filename = 'video', array $options = []): array
+    {
+        $outputFile = $this->outputDir . '/' . $this->safeName($filename) . '_processed.mp4';
+
+        // 如果已处理过且未过期，直接返回缓存
+        if (file_exists($outputFile) && filemtime($outputFile) > time() - 3600) {
+            return $this->buildResult($outputFile, $filename);
+        }
+
+        // 清理旧文件
+        $this->cleanOldFiles(10);
+
+        // 下载源视频
+        $tempFile = $this->outputDir . '/' . uniqid('src_', true) . '.mp4';
+        $this->download($sourceUrl, $tempFile);
+
+        // FFmpeg 处理
+        $this->transcode($tempFile, $outputFile, $options);
+
+        // 删除源临时文件
+        @unlink($tempFile);
+
+        return $this->buildResult($outputFile, $filename);
+    }
+
+    /**
+     * FFmpeg 重编码 —— 同时修改画面指纹 + 音频指纹 + MD5
+     */
+    private function transcode(string $input, string $output, array $options = []): void
+    {
+        // 可配置参数
+        $noiseAlls    = (int) ($options['noise_alls'] ?? 3);      // 噪点强度 1-8
+        $brightness   = (float) ($options['brightness'] ?? 0.05); // 亮度 ±0.02-0.08
+        $contrast     = (float) ($options['contrast'] ?? 1.04);   // 对比度 1.02-1.08
+        $saturation   = (float) ($options['saturation'] ?? 1.06); // 饱和度 1.02-1.10
+        $crf          = (int) ($options['crf'] ?? 26);            // 画质 18-28
+        $ar           = (int) ($options['audio_rate'] ?? 48000);  // 音频采样率
+
+        $vf = sprintf(
+            'noise=alls=%d:allf=t,eq=brightness=%.2f:contrast=%.2f:saturation=%.2f',
+            $noiseAlls, $brightness, $contrast, $saturation
+        );
+
+        $cmd = sprintf(
+            '"%s" -y -i %s -c:v libx264 -preset fast -crf %d -vf %s -c:a aac -ar %d -movflags +faststart %s 2>&1',
+            str_replace('"', '', $this->ffmpegBin),
+            escapeshellarg($input),
+            $crf,
+            escapeshellarg($vf),
+            $ar,
+            escapeshellarg($output)
+        );
+
+        $descriptors = [
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $process = proc_open($cmd, $descriptors, $pipes);
+
+        if (!is_resource($process)) {
+            throw new \RuntimeException('无法启动 FFmpeg 进程');
+        }
+
+        // 超时控制
+        $startTime = time();
+        $stderr = '';
+
+        stream_set_blocking($pipes[2], false);
+        while (true) {
+            $status = proc_get_status($process);
+            if (!$status['running']) {
+                break;
+            }
+            if (time() - $startTime > $this->timeout) {
+                proc_terminate($process, 9);
+                throw new \RuntimeException('FFmpeg 处理超时（' . $this->timeout . '秒）');
+            }
+            $chunk = fread($pipes[2], 4096);
+            if ($chunk !== false && $chunk !== '') {
+                $stderr .= $chunk;
+            }
+            usleep(100000); // 100ms
+        }
+
+        $exitCode = $status['exitcode'] ?? -1;
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($process);
+
+        if ($exitCode !== 0 || !file_exists($output) || filesize($output) < 1024) {
+            throw new \RuntimeException(
+                'FFmpeg 处理失败 (code=' . $exitCode . '): ' . substr($cmd . "\nSTDERR: " . $stderr, -500)
+            );
+        }
+    }
+
+    /**
+     * 下载远程视频到临时文件
+     */
+    private function download(string $url, string $dest): void
+    {
+        $fp = fopen($dest, 'wb');
+        if (!$fp) {
+            throw new \RuntimeException('无法创建临时文件');
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CONNECTTIMEOUT => 15,
+            CURLOPT_TIMEOUT => 120,
+            CURLOPT_FILE => $fp,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            CURLOPT_REFERER => parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST) . '/',
+        ] + HttpClient::getSslOptions());
+
+        $result = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        fclose($fp);
+
+        if ($result === false || $httpCode >= 400) {
+            @unlink($dest);
+            throw new \RuntimeException('下载源视频失败 (HTTP ' . $httpCode . '): ' . $error);
+        }
+
+        if (filesize($dest) < 1024) {
+            @unlink($dest);
+            throw new \RuntimeException('下载的文件过小');
+        }
+    }
+
+    /**
+     * 组装返回结果
+     */
+    private function buildResult(string $file, string $filename): array
+    {
+        $size = filesize($file);
+        $md5  = md5_file($file);
+
+        // 获取视频时长
+        $duration = 0.0;
+        $cmd = sprintf(
+            '%s -i %s -f null - 2>&1',
+            escapeshellcmd($this->ffmpegBin),
+            escapeshellarg($file)
+        );
+
+        $output = shell_exec($cmd);
+        if ($output && preg_match('/Duration:\s*(\d+):(\d+):(\d+\.\d+)/', $output, $m)) {
+            $duration = (int) $m[1] * 3600 + (int) $m[2] * 60 + (float) $m[3];
+        }
+
+        $cleanName = $this->safeName($filename) . '_processed.mp4';
+
+        return [
+            'url'      => '/storage/processed/' . $cleanName,
+            'size'     => $size,
+            'md5'      => $md5,
+            'duration' => round($duration, 2),
+            'filename' => $cleanName,
+        ];
+    }
+
+    /**
+     * 清理旧处理文件
+     */
+    private function cleanOldFiles(int $keep): void
+    {
+        $files = glob($this->outputDir . '/*_processed.mp4');
+        if (!$files) return;
+
+        usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
+
+        foreach (array_slice($files, $keep) as $file) {
+            @unlink($file);
+        }
+    }
+
+    /**
+     * 安全化文件名
+     */
+    private function safeName(string $name): string
+    {
+        $name = preg_replace('/[<>:"\/\\|?*]/u', '', $name);
+        $name = trim(mb_substr($name, 0, 60, 'UTF-8'));
+        return $name ?: 'video';
+    }
+}

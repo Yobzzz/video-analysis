@@ -139,6 +139,35 @@ if ($path === "/api/v1/parse" || $path === "/api/v1/parse/") {
     }
 }
 
+// POST /api/v1/process — 视频指纹重编码
+if ($path === "/api/v1/process" || $path === "/api/v1/process/") {
+    if ($method !== "POST") {
+        Response::error("请使用 POST 方法", 405);
+    }
+
+    $sourceUrl = trim($_POST["url"] ?? "");
+    $filename  = trim($_POST["filename"] ?? "video");
+
+    if ($sourceUrl === "" || !filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
+        Response::validationError(["url" => "无效的视频链接"]);
+    }
+
+    try {
+        $processor = new \App\Services\VideoProcessor();
+        $result = $processor->process($sourceUrl, $filename, [
+            'noise_alls'  => (int) ($_POST["noise"] ?? 3),
+            'brightness'  => (float) ($_POST["brightness"] ?? 0.05),
+            'contrast'    => (float) ($_POST["contrast"] ?? 1.04),
+            'saturation'  => (float) ($_POST["saturation"] ?? 1.06),
+            'crf'         => (int) ($_POST["crf"] ?? 24),
+            'audio_rate'  => (int) ($_POST["audio_rate"] ?? 48000),
+        ]);
+        Response::success($result, "处理完成");
+    } catch (\RuntimeException $e) {
+        Response::error($e->getMessage(), 500);
+    }
+}
+
 // 404
 Response::error("接口不存在", 404);
 

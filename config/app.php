@@ -46,6 +46,13 @@ return [
         'allowed_domains' => array_filter(array_map('trim', explode(',', Config::env('MEDIA_PROXY_ALLOWED_DOMAINS', '')))),
     ],
 
+    // 视频指纹处理
+    'video_processor' => [
+        'ffmpeg_bin'  => Config::env('FFMPEG_BIN', 'ffmpeg'),
+        'output_dir'  => Config::env('STORAGE_PROCESSED_DIR', __DIR__ . '/../storage/processed'),
+        'timeout'     => (int)Config::env('FFMPEG_TIMEOUT', '600'),
+    ],
+
     // 日志配置
     'logging' => [
         'level' => Config::env('LOG_LEVEL', 'error'), // debug, info, warning, error
