@@ -67,6 +67,8 @@ if ($method === 'GET' && ($_GET['action'] ?? '') === 'processed-dl') {
 
 // 媒体代理路由：为浏览器提供可播放/可下载的服务端转发
 if ($method === 'GET' && ($_GET['action'] ?? '') === 'media') {
+    $filename = trim($_GET['filename'] ?? '') ?: 'video.mp4';
+
     // 处理后视频 — 文件名有proc_前缀则从本地存储直出
     if (strpos($filename, 'proc_') === 0) {
         $realFile = substr($filename, 5); // 去掉proc_前缀找真实文件
@@ -89,7 +91,6 @@ if ($method === 'GET' && ($_GET['action'] ?? '') === 'media') {
     }
 
     $download = ($_GET['download'] ?? '') === '1';
-    $filename = trim($_GET['filename'] ?? '') ?: 'video.mp4';
     MediaProxy::stream($mediaUrl, $download, $filename);
     exit;
 }
