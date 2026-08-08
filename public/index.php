@@ -67,19 +67,16 @@ if ($method === 'GET' && ($_GET['action'] ?? '') === 'processed-dl') {
 
 // 媒体代理路由：为浏览器提供可播放/可下载的服务端转发
 if ($method === 'GET' && ($_GET['action'] ?? '') === 'media') {
-    // 处理后视频 — 从本地存储直出，不走CDN代理
-    if (($_GET['src'] ?? '') === 'processed') {
-        $file = trim($_GET['filename'] ?? '');
-        if ($file !== '' && strpos($file, '..') === false && strpos($file, '/') === false) {
-            $storageFile = __DIR__ . '/../storage/processed/' . $file;
-            if (file_exists($storageFile) && is_file($storageFile)) {
-                header('Content-Type: video/mp4');
-                header('Content-Length: ' . filesize($storageFile));
-                header('Content-Disposition: attachment; filename="' . addslashes($file) . '"');
-                header('Accept-Ranges: bytes');
-                readfile($storageFile);
-                exit;
-            }
+    // 处理后视频 — 文件名有proc_前缀则从本地存储直出
+    if (strpos($filename, 'proc_') === 0) {
+        $storageFile = __DIR__ . '/../storage/processed/' . $filename;
+        if (file_exists($storageFile) && is_file($storageFile)) {
+            header('Content-Type: video/mp4');
+            header('Content-Length: ' . filesize($storageFile));
+            header('Content-Disposition: attachment; filename="' . addslashes(substr($filename, 5)) . '"');
+            header('Accept-Ranges: bytes');
+            readfile($storageFile);
+            exit;
         }
         http_response_code(404);
         exit;
