@@ -558,7 +558,7 @@ processModal.hidden=false;
 processDone.hidden=true;
 processBar.style.background="";
 processBar.style.width="0";
-processTitle.innerHTML="<span class="zh">视频指纹处理中...</span><span class="en">Processing...</span>";
+processTitle.innerHTML='<span class="zh">视频指纹处理中...</span><span class="en">Processing...</span>';
 processBtn.disabled=true;
 processBar.style.width="30%";
 const ctrl=new AbortController();
@@ -568,12 +568,12 @@ const fd=new FormData();
 fd.append("url",currentResult.data.url);
 fd.append("filename",currentResult.data.title||"video");
 processBar.style.width="60%";
-const r=await fetch("api/v1/process",{method:/POST/,body:fd,signal:ctrl.signal});
+const r=await fetch("api/v1/process",{method:"POST",body:fd,signal:ctrl.signal});
 const j=await r.json().catch(()=>null);
 processBar.style.width="95%";
 if(!r.ok||!j||!j.success)throw new Error((j&&j.message)||"处理失败");
 processBar.style.width="100%";
-processTitle.innerHTML="<span class="zh">视频指纹处理完成</span><span class="en">Fingerprint Complete</span>";
+processTitle.innerHTML='<span class="zh">视频指纹处理完成</span><span class="en">Fingerprint Complete</span>';
 processDone.hidden=false;
 processDlBtn.dataset.dlUrl=j.data.url;
 processDlBtn.dataset.dlFilename=j.data.filename;
@@ -582,7 +582,7 @@ processBtn.disabled=false
 }catch(e){
 processBar.style.width="100%";
 processBar.style.background="#e64555";
-processTitle.innerHTML=e.name==="AbortError"?"<span class=zh>处理超时</span><span class=en>Timed out</span>":"<span class=zh>视频指纹处理失败，请重新处理</span><span class=en>Processing failed, please retry</span>";
+processTitle.innerHTML=e.name==="AbortError"?'<span class=zh>处理超时</span><span class=en>Timed out</span>':'<span class=zh>视频指纹处理失败，请重新处理</span><span class=en>Processing failed, please retry</span>';
 processBtn.disabled=false
 }}
 processDlBtn.addEventListener('click',async()=>{const u=processDlBtn.dataset.dlUrl,f=processDlBtn.dataset.dlFilename;if(!u||!f)return;const btn=processDlBtn,orig=btn.textContent;btn.textContent='Processing...';btn.disabled=true;try{const r=await fetch(u),blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=f;a.click();URL.revokeObjectURL(a.href);btn.textContent=orig;btn.disabled=false}catch(e){btn.textContent='Download Failed';setTimeout(()=>{btn.textContent=orig;btn.disabled=false},2000)}});processClose.addEventListener('click',()=>{processModal.hidden=true;processBar.style.width='0';processBar.style.background='';processDone.hidden=true})
