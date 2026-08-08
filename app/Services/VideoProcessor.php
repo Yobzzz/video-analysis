@@ -23,7 +23,7 @@ class VideoProcessor
     {
         $this->ffmpegBin  = Config::get('video_processor.ffmpeg_bin', 'ffmpeg');
         $this->outputDir  = rtrim(Config::get('video_processor.output_dir', __DIR__ . '/../../storage/processed'), '/');
-        $this->timeout    = max(60, (int) Config::get('video_processor.timeout', 600));
+        $this->timeout    = max(60, (int) Config::get('video_processor.timeout', 900));
 
         if (!is_dir($this->outputDir)) {
             mkdir($this->outputDir, 0755, true);
@@ -73,7 +73,7 @@ class VideoProcessor
         $brightness   = (float) ($options['brightness'] ?? 0.05); // 亮度 ±0.02-0.08
         $contrast     = (float) ($options['contrast'] ?? 1.04);   // 对比度 1.02-1.08
         $saturation   = (float) ($options['saturation'] ?? 1.06); // 饱和度 1.02-1.10
-        $crf          = (int) ($options['crf'] ?? 26);            // 画质 18-28
+        $crf          = (int) ($options['crf'] ?? 30);            // 画质 18-35, Render默认30提速
         $ar           = (int) ($options['audio_rate'] ?? 48000);  // 音频采样率
 
         $vf = sprintf(
@@ -82,7 +82,7 @@ class VideoProcessor
         );
 
         $cmd = sprintf(
-            '"%s" -y -i %s -c:v libx264 -preset fast -crf %d -vf %s -c:a aac -ar %d -movflags +faststart %s 2>&1',
+            '"%s" -y -i %s -c:v libx264 -preset ultrafast -crf %d -vf %s -c:a aac -ar %d -b:a 64k -movflags +faststart -threads 2 %s 2>&1',
             str_replace('"', '', $this->ffmpegBin),
             escapeshellarg($input),
             $crf,
@@ -132,6 +132,13 @@ class VideoProcessor
             throw new \RuntimeException(
                 'FFmpeg 处理失败 (code=' . $exitCode . '): ' . substr($cmd . "\nSTDERR: " . $stderr, -500)
             );
+        }
+
+        // 验证输出是可播放的 MP4（有 ftyp 头）
+        $header = @file_get_contents($output, false, null, 0, 12);
+        if ($header === false || strpos($header, 'ftyp') === false) {
+            @unlink($output);
+            throw new \RuntimeException('输出损坏，非有效MP4格式');
         }
     }
 
