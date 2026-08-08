@@ -46,6 +46,7 @@ COPY docker/nginx.conf /etc/nginx/sites-enabled/default
 RUN sed -i 's/^listen = .*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf \
     && sed -i '/^listen.allowed_clients/d' /usr/local/etc/php-fpm.d/www.conf \
     && echo 'php_admin_value[error_log] = /dev/stderr' >> /usr/local/etc/php-fpm.d/www.conf \
+    && echo 'php_admin_value[max_execution_time] = 900' >> /usr/local/etc/php-fpm.d/www.conf \
     && echo 'php_admin_flag[log_errors] = on' >> /usr/local/etc/php-fpm.d/www.conf
 
 # 配置 Supervisor
