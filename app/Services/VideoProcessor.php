@@ -23,7 +23,7 @@ class VideoProcessor
     {
         $this->ffmpegBin  = Config::get('video_processor.ffmpeg_bin', 'ffmpeg');
         $this->outputDir  = rtrim(Config::get('video_processor.output_dir', __DIR__ . '/../../storage/processed'), '/');
-        $this->timeout    = max(60, (int) Config::get('video_processor.timeout', 900));
+        $this->timeout    = max(30, (int) Config::get('video_processor.timeout', 60));
 
         if (!is_dir($this->outputDir)) {
             mkdir($this->outputDir, 0755, true);
@@ -68,26 +68,12 @@ class VideoProcessor
      */
     private function transcode(string $input, string $output, array $options = []): void
     {
-        // 可配置参数
-        $noiseAlls    = (int) ($options['noise_alls'] ?? 3);      // 噪点强度 1-8
-        $brightness   = (float) ($options['brightness'] ?? 0.05); // 亮度 ±0.02-0.08
-        $contrast     = (float) ($options['contrast'] ?? 1.04);   // 对比度 1.02-1.08
-        $saturation   = (float) ($options['saturation'] ?? 1.06); // 饱和度 1.02-1.10
-        $crf          = (int) ($options['crf'] ?? 30);            // 画质 18-35, Render默认30提速
-        $ar           = (int) ($options['audio_rate'] ?? 48000);  // 音频采样率
-
-        $vf = sprintf(
-            'noise=alls=%d:allf=t,eq=brightness=%.2f:contrast=%.2f:saturation=%.2f',
-            $noiseAlls, $brightness, $contrast, $saturation
-        );
-
+        // Render免费版512MB内存，重编码会OOM超时。改用流拷贝+元数据注入。
+        // 效果：MD5完全改变，处理秒级完成。画面/音频指纹不变（需本地部署才能深度处理）。
         $cmd = sprintf(
-            '"%s" -y -i %s -c:v libx264 -preset ultrafast -crf %d -vf %s -c:a aac -ar %d -b:a 64k -movflags +faststart -threads 2 %s 2>&1',
+            '"%s" -y -i %s -c copy -map_metadata -1 -metadata title="processed" -movflags +faststart -f mp4 %s 2>&1',
             str_replace('"', '', $this->ffmpegBin),
             escapeshellarg($input),
-            $crf,
-            escapeshellarg($vf),
-            $ar,
             escapeshellarg($output)
         );
 
