@@ -35,6 +35,23 @@ if (strpos($uri, '/storage/processed/') === 0) {
     }
 }
 
+// /dl/processed/*.mp4 — 处理后视频直出
+if (strpos($uri, '/dl/processed/') === 0 && preg_match('/\.mp4$/i', $uri)) {
+    $file = basename($uri);
+    $storageFile = __DIR__ . '/../storage/processed/' . $file;
+    if (file_exists($storageFile) && is_file($storageFile)) {
+        header('Content-Type: video/mp4');
+        header('Content-Length: ' . filesize($storageFile));
+        header('Content-Disposition: attachment; filename="' . addslashes($file) . '"');
+        header('Accept-Ranges: bytes');
+        readfile($storageFile);
+        return true;
+    }
+    http_response_code(404);
+    echo '文件不存在';
+    return true;
+}
+
 // /dl/*.mp4 → media proxy download
 if (strpos($uri, '/dl/') === 0 && preg_match('/\.mp4$/i', $uri)) {
     $filename = basename($uri);
