@@ -190,7 +190,7 @@ class VideoProcessor
         $cleanName = $this->safeName($filename) . '_processed.mp4';
 
         return [
-            'url'      => '/dl/processed/' . urlencode($cleanName),
+            'url'      => '/dl/' . urlencode($cleanName) . '?src=processed',
             'size'     => $size,
             'md5'      => $md5,
             'duration' => round($duration, 2),
