@@ -69,11 +69,12 @@ if ($method === 'GET' && ($_GET['action'] ?? '') === 'processed-dl') {
 if ($method === 'GET' && ($_GET['action'] ?? '') === 'media') {
     // 处理后视频 — 文件名有proc_前缀则从本地存储直出
     if (strpos($filename, 'proc_') === 0) {
-        $storageFile = __DIR__ . '/../storage/processed/' . $filename;
+        $realFile = substr($filename, 5); // 去掉proc_前缀找真实文件
+        $storageFile = __DIR__ . '/../storage/processed/' . $realFile;
         if (file_exists($storageFile) && is_file($storageFile)) {
             header('Content-Type: video/mp4');
             header('Content-Length: ' . filesize($storageFile));
-            header('Content-Disposition: attachment; filename="' . addslashes(substr($filename, 5)) . '"');
+            header('Content-Disposition: attachment; filename="' . addslashes($realFile) . '"');
             header('Accept-Ranges: bytes');
             readfile($storageFile);
             exit;
