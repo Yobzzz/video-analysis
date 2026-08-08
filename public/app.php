@@ -562,7 +562,7 @@ processTitle.innerHTML='<span class="zh">视频指纹处理中...</span><span cl
 processBtn.disabled=true;
 processBar.style.width="30%";
 const ctrl=new AbortController();
-setTimeout(()=>ctrl.abort(),120000);
+setTimeout(()=>ctrl.abort(),600000);
 try{
 const fd=new FormData();
 fd.append("url",currentResult.data.url);

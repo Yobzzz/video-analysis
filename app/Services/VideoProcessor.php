@@ -23,7 +23,7 @@ class VideoProcessor
     {
         $this->ffmpegBin  = Config::get('video_processor.ffmpeg_bin', 'ffmpeg');
         $this->outputDir  = rtrim(Config::get('video_processor.output_dir', __DIR__ . '/../../storage/processed'), '/');
-        $this->timeout    = max(30, (int) Config::get('video_processor.timeout', 60));
+        $this->timeout    = max(60, (int) Config::get('video_processor.timeout', 600));
 
         if (!is_dir($this->outputDir)) {
             mkdir($this->outputDir, 0755, true);
@@ -143,7 +143,7 @@ class VideoProcessor
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_CONNECTTIMEOUT => 15,
-            CURLOPT_TIMEOUT => 120,
+            CURLOPT_TIMEOUT => 300,
             CURLOPT_FILE => $fp,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             CURLOPT_REFERER => parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST) . '/',
