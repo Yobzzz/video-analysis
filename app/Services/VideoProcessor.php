@@ -19,7 +19,11 @@ class VideoProcessor
     {
         $this->outputDir = rtrim(Config::get('video_processor.output_dir', __DIR__ . '/../../storage/processed'), '/');
         if (!is_dir($this->outputDir)) {
-            @mkdir($this->outputDir, 0755, true);
+            if (!@mkdir($this->outputDir, 0755, true) && !is_dir($this->outputDir)) {
+                // Render只读文件系统fallback到/tmp
+                $this->outputDir = '/tmp/video-processed';
+                @mkdir($this->outputDir, 0755, true);
+            }
         }
         $this->timeout   = max(30, (int) Config::get('video_processor.timeout', 300));
     }
