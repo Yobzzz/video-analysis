@@ -77,7 +77,14 @@ class MediaProxy
             }
 
             $parts = parse_url($currentUrl);
-            $referer = ($parts['scheme'] ?? 'https') . '://' . ($parts['host'] ?? '');
+            $host = $parts['host'] ?? '';
+            $referer = ($parts['scheme'] ?? 'https') . '://' . $host;
+            // Kuaishou/Douyin CDN requires platform referer
+            if (preg_match('/kwai|chenzhongtech|yximgs|oskwai/i', $host)) {
+                $referer = 'https://www.kuaishou.com/';
+            } elseif (preg_match('/douyinpic\.com|douyinvod\.com|zjcdn\.com/i', $host)) {
+                $referer = 'https://www.douyin.com/';
+            }
             $requestHeaders = [
                 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
                 'Accept: */*',
