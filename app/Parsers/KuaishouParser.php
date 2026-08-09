@@ -7,28 +7,27 @@ namespace App\Parsers;
 use App\Contracts\AbstractParser;
 
 /**
- * 快手视频解析器
+ * 快手视频解析器 — 从移动端分享页面抓取视频数据
  */
 class KuaishouParser extends AbstractParser
 {
     public static function getHeaders(): array
     {
         return [
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            'User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
             'Referer' => 'https://www.kuaishou.com/',
         ];
     }
 
     public static function parse(string $url): array
     {
-        // 获取重定向目标 URL
+        // 跟随短链重定向
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => 15,
-            CURLOPT_NOBODY => true,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
         ] + (class_exists('App\Utils\HttpClient') ? \App\Utils\HttpClient::getSslOptions() : [CURLOPT_SSL_VERIFYPEER => false]));
         curl_exec($ch);
         $target = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL) ?: $url;
@@ -41,67 +40,103 @@ class KuaishouParser extends AbstractParser
         } elseif (preg_match('#/(?:photo|short-video|fw/photo)/(\w+)#i', $target, $m)) {
             $photoId = $m[1];
         }
-
         if ($photoId === '') {
             throw new \InvalidArgumentException("无法识别快手视频 ID");
         }
 
-        // GraphQL 请求
-        $query = 'query visionPhotoDetail($photoId: String) { visionPhotoDetail(photoId: $photoId) { photo { id caption coverUrl duration likeCount viewCount photoUrl timestamp user { id name avatar } music { id name author coverUrl } } } }';
-        $payload = json_encode([
-            'operationName' => 'visionPhotoDetail',
-            'query' => $query,
-            'variables' => ['photoId' => $photoId],
-        ], JSON_UNESCAPED_SLASHES);
-
-        $ch = curl_init('https://www.kuaishou.com/graphql');
+        // 从移动端页面抓取数据
+        $pageUrl = $target; // 使用重定向后的完整URL（含query参数）
+        $ch = curl_init($pageUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => 20,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-                'Referer: https://www.kuaishou.com/',
-            ],
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+            CURLOPT_REFERER => 'https://www.kuaishou.com/',
         ] + (class_exists('App\Utils\HttpClient') ? \App\Utils\HttpClient::getSslOptions() : [CURLOPT_SSL_VERIFYPEER => false]));
-        $response = curl_exec($ch);
+        $html = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode !== 200 || !$response) {
-            throw new \RuntimeException("快手 GraphQL 请求失败 (HTTP {$httpCode})");
+        if (!$html || $httpCode >= 400) {
+            throw new \RuntimeException("快手页面请求失败 (HTTP {$httpCode})");
         }
 
-        $data = self::parseJson($response);
-        if (!$data) {
-            throw new \RuntimeException("快手 API 返回格式异常");
+        // 从 HTML 提取视频 URL（优先高清版 hd15/hd16）
+        $videoUrl = '';
+        $coverUrl = '';
+        $caption = '';
+        $authorName = '';
+        $avatar = '';
+        $musicName = '';
+        $musicAvatar = '';
+        $likeCount = 0;
+        $timestamp = 0;
+        $authorId = '';
+
+        // 视频 URL: hd15/hd16 高清版本优先
+        if (preg_match('#https?://[^"\s<>]+(?:hd1[56]|video)[^"\s<>]*\.mp4[^"\s<>"]*#i', $html, $m)) {
+            $videoUrl = $m[0];
+        } elseif (preg_match('#https?://[^"\s<>]+\.mp4[^"\s<>"]*#i', $html, $m)) {
+            $videoUrl = $m[0];
         }
 
-        $photo = $data['data']['visionPhotoDetail']['photo'] ?? null;
-        if (!$photo || empty($photo['photoUrl'])) {
-            // 检查是否有captcha或登录要求
-            if (isset($data['errors'])) {
-                $msg = $data['errors'][0]['message'] ?? '未知错误';
-                throw new \RuntimeException("快手API错误: {$msg}");
+        // 封面
+        if (preg_match('#\"(https?://[^\"]+\.(?:jpg|jpeg|png|webp)[^\"]*clientCacheKey=' . preg_quote($photoId, '#') . '\.jpg[^\"]*)#i', $html, $m)) {
+            $coverUrl = $m[1];
+        } elseif (preg_match('#(https?://[^\"]+upic[^\"]+\.jpg[^\"]*)#i', $html, $m)) {
+            $coverUrl = $m[1];
+        }
+
+        // 标题
+        if (preg_match('/<meta\s+name="description"\s+content="([^"]+)"/i', $html, $m)) {
+            $caption = $m[1];
+        }
+
+        // 作者名、ID、头像 — 尝试从 JSON 提取
+        if (preg_match('/"name"\s*:\s*"([^"]+)"/i', $html, $m)) {
+            $candidates = [];
+            preg_match_all('/"name"\s*:\s*"([^"]+)"/i', $html, $candidates);
+            foreach ($candidates[1] as $name) {
+                if (mb_strlen($name) > 1 && mb_strlen($name) < 30) {
+                    if (stripos($name, '游戏') === false || mb_strlen($name) < 10) {
+                        $authorName = $name;
+                        break;
+                    }
+                }
             }
-            throw new \RuntimeException("未找到视频URL，可能需登录");
+        }
+
+        // 头像
+        if (preg_match('#(https?://[^\"]+/uhead/[^\"]+_s\.jpg[^\"]*)#i', $html, $m)) {
+            $avatar = $m[1];
+        }
+
+        // 音乐名
+        if (preg_match('/"author"\s*:\s*"([^"]+)"/i', $html, $m)) {
+            $musicName = $m[1];
+        }
+        // 音乐封面
+        if (preg_match('#(https?://[^\"]+ost/[^\"]+\.(?:jpg|png)[^\"]*)#i', $html, $m)) {
+            $musicAvatar = $m[1];
+        }
+
+        if ($videoUrl === '') {
+            throw new \RuntimeException("未找到视频URL");
         }
 
         return [
-            'author' => $photo['user']['name'] ?? '',
-            'uid' => $photo['user']['id'] ?? '',
-            'avatar' => $photo['user']['avatar'] ?? '',
-            'like' => $photo['likeCount'] ?? 0,
-            'time' => $photo['timestamp'] ?? 0,
-            'title' => $photo['caption'] ?? '',
-            'cover' => $photo['coverUrl'] ?? '',
-            'url' => self::fixUrl($photo['photoUrl']),
+            'author' => $authorName,
+            'uid' => $photoId,
+            'avatar' => $avatar,
+            'like' => $likeCount,
+            'time' => $timestamp,
+            'title' => $caption ?: '',
+            'cover' => $coverUrl,
+            'url' => self::fixUrl($videoUrl),
             'music' => [
-                'author' => $photo['music']['author'] ?? '',
-                'avatar' => $photo['music']['coverUrl'] ?? '',
+                'author' => $musicName,
+                'avatar' => $musicAvatar,
             ],
         ];
     }
