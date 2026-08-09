@@ -71,8 +71,12 @@ if ($method === 'GET' && ($_GET['action'] ?? '') === 'media') {
 
     // 处理后视频 — 文件名有proc_前缀则从本地存储直出
     if (strpos($filename, 'proc_') === 0) {
-        $realFile = substr($filename, 5); // 去掉proc_前缀找真实文件
+        $realFile = substr($filename, 5);
         $storageFile = __DIR__ . '/../storage/processed/' . $realFile;
+        $tmpFile = '/tmp/video-processed/' . $realFile;
+        if (!file_exists($storageFile) && file_exists($tmpFile)) {
+            $storageFile = $tmpFile;
+        }
         if (file_exists($storageFile) && is_file($storageFile)) {
             header('Content-Type: video/mp4');
             header('Content-Length: ' . filesize($storageFile));
