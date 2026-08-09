@@ -46,7 +46,15 @@ class KuaishouParser extends AbstractParser
         ], JSON_UNESCAPED_SLASHES));
 
         if (!$result) {
-            throw new \RuntimeException("解析视频信息失败");
+            // Fallback: try page HTML extraction
+            $htmlResult = self::fetch($target);
+            if ($htmlResult && $htmlResult['data']) {
+                $html = $htmlResult['data'];
+                if (preg_match('/"photoUrl"\s*:\s*"([^"]+)"/i', $html, $m)) {
+                    return self::parseFromHtml($html, $photoId);
+                }
+            }
+            throw new \RuntimeException("解析视频信息失败，请检查链接是否有效");
         }
 
         $data = self::parseJson($result["data"]);
@@ -73,6 +81,33 @@ class KuaishouParser extends AbstractParser
                 "author" => $photo["music"]["author"] ?? "",
                 "avatar" => $photo["music"]["coverUrl"] ?? "",
             ],
+        ];
+    }
+
+    private static function parseFromHtml(string $html, string $photoId): array
+    {
+        $data = [];
+        if (preg_match('/"photoUrl"\s*:\s*"([^"]+)"/i', $html, $m)) $data['url'] = self::fixUrl($m[1]);
+        if (preg_match('/"caption"\s*:\s*"([^"]*)"/i', $html, $m)) $data['title'] = $m[1];
+        if (preg_match('/"coverUrl"\s*:\s*"([^"]+)"/i', $html, $m)) $data['cover'] = $m[1];
+        if (preg_match('/"likeCount"\s*:\s*(\d+)/i', $html, $m)) $data['like'] = (int)$m[1];
+        if (preg_match('/"name"\s*:\s*"([^"]+)"/i', $html, $m)) $data['author'] = $m[1];
+        if (preg_match('/"timestamp"\s*:\s*(\d+)/i', $html, $m)) $data['time'] = (int)$m[1];
+        if (preg_match('/"avatar"\s*:\s*"([^"]+)"/i', $html, $m)) $data['avatar'] = $m[1];
+        if (preg_match('/"author"\s*:\s*"([^"]+)"/i', $html, $m) && !isset($data['music'])) $data['music'] = ['author' => $m[1]];
+        
+        if (!isset($data['url'])) throw new \RuntimeException('未找到视频URL');
+        
+        return [
+            "author" => $data['author'] ?? '',
+            "uid" => $photoId,
+            "avatar" => $data['avatar'] ?? '',
+            "like" => $data['like'] ?? 0,
+            "time" => $data['time'] ?? 0,
+            "title" => $data['title'] ?? '',
+            "cover" => $data['cover'] ?? '',
+            "url" => $data['url'],
+            "music" => $data['music'] ?? ["author" => "", "avatar" => ""],
         ];
     }
 }
