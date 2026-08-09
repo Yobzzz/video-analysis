@@ -82,7 +82,7 @@ class DouyinParser extends AbstractParser
             'time'      => $page['create_time'] ?? 0,
             'title'     => $page['desc'] ?? '',
             'cover'     => $page['video']['cover']['url_list'][0] ?? '',
-            'video_url' => str_replace('playwm', 'play', $page['video']['play_addr']['url_list'][0] ?? ''),
+            'video_url' => self::resolveCdnUrl(str_replace('playwm', 'play', $page['video']['play_addr']['url_list'][0] ?? '')),
             'duration'  => $page['video']['duration'] ?? 0,
             'music'     => [
                 'title'  => $page['music']['title'] ?? '',
@@ -130,12 +130,32 @@ class DouyinParser extends AbstractParser
             'time'   => (int)($data['time'] ?? $data['create_time'] ?? 0),
             'title'  => $data['title'] ?? $data['desc'] ?? '',
             'cover'  => $data['cover'] ?? $data['video']['cover']['url_list'][0] ?? '',
-            'url'    => self::fixUrl($url),
+            'url'    => self::fixUrl(self::resolveCdnUrl($url)),
             'music'  => [
                 'author' => $data['music']['author'] ?? '',
                 'avatar' => $data['music']['cover'] ?? $data['music']['cover_large']['url_list'][0] ?? '',
             ],
         ];
+    }
+
+    /**
+     * 将播放重定向URL解析为直接CDN URL
+     */
+    private static function resolveCdnUrl(string $url): string
+    {
+        if (!$url || !preg_match('#/play/\?|aweme/v1/play#', $url)) return $url;
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_NOBODY => true,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        ] + self::sslOptions());
+        curl_exec($ch);
+        $final = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
+        return ($final && $final !== $url) ? $final : $url;
     }
 
     private static function sslOptions(): array

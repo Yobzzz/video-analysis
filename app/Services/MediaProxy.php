@@ -59,9 +59,9 @@ class MediaProxy
         header('Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges');
         header('Timing-Allow-Origin: *');
 
-        // 清空输出缓冲，保证媒体流可以边下载边播放
-        while (ob_get_level() > 0) {
-            ob_end_clean();
+        // 启用输出缓冲 避免流式输出时 header 报错
+        if (ob_get_level() === 0) {
+            ob_start();
         }
 
         $currentUrl = $url;
