@@ -20,33 +20,9 @@ class VideoParser
             "class" => \App\Parsers\BilibiliParser::class,
             "domains" => ["bilibili.com", "b23.tv"],
         ],
-        "pipixia" => [
-            "class" => \App\Parsers\PipixiaParser::class,
-            "domains" => ["pipix.com"],
-        ],
-        "weibo" => [
-            "class" => \App\Parsers\WeiboParser::class,
-            "domains" => ["weibo.com"],
-        ],
-        "ixigua" => [
-            "class" => \App\Parsers\XiguaParser::class,
-            "domains" => ["ixigua.com"],
-        ],
         "shipinhao" => [
             "class" => \App\Parsers\ShipinhaoParser::class,
             "domains" => ["channels.weixin.qq.com"],
-        ],
-        "izuiyou" => [
-            "class" => \App\Parsers\IzuiyouParser::class,
-            "domains" => ["izuiyou.com"],
-        ],
-        "pipigx" => [
-            "class" => \App\Parsers\PipigxParser::class,
-            "domains" => ["ippzone.com", "pipigx.com"],
-        ],
-        "weishi" => [
-            "class" => \App\Parsers\WeishiParser::class,
-            "domains" => ["weishi.qq.com"],
         ],
         "xiaohongshu" => [
             "class" => \App\Parsers\XiaohongshuParser::class,
