@@ -38,34 +38,41 @@ class VideoProcessor
      * @param array  $options   自定义处理参数
      * @return array{url: string, size: int, md5: string, duration: float}
      */
-    public function process(string $sourceUrl, string $filename = 'video', array $options = []): array
+        public function process(string $sourceUrl, string $filename = 'video', array $options = []): array
     {
         $outputFile = $this->outputDir . '/' . $this->safeName($filename) . '_processed.mp4';
-
-        // 如果已处理过且未过期，直接返回缓存
         if (file_exists($outputFile) && filemtime($outputFile) > time() - 3600) {
             return $this->buildResult($outputFile, $filename);
         }
-
-        // 清理旧文件
         $this->cleanOldFiles(10);
-
-        // 下载源视频
-        $tempFile = $this->outputDir . '/' . uniqid('src_', true) . '.mp4';
-        $this->download($sourceUrl, $tempFile);
-
-        // FFmpeg 处理
-        $this->transcode($tempFile, $outputFile, $options);
-
-        // 删除源临时文件
-        @unlink($tempFile);
-
+        $serverPort = $_SERVER['SERVER_PORT'] ?? '80'; $proxyUrl = 'http://localhost:' . $serverPort . '/index.php?action=media&url=' . urlencode($sourceUrl);
+        $this->transcodeUrl($proxyUrl, $outputFile);
         return $this->buildResult($outputFile, $filename);
     }
 
-    /**
-     * FFmpeg 重编码 —— 同时修改画面指纹 + 音频指纹 + MD5
-     */
+    private function transcodeUrl(string $httpUrl, string $output): void
+    {
+        $cmd = sprintf('"%s" -y -i %s -c copy -map_metadata -1 -metadata title="proc" -movflags +faststart -f mp4 %s 2>&1', str_replace('"','',$this->ffmpegBin), escapeshellarg($httpUrl), escapeshellarg($output));
+        $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+        $process = proc_open($cmd, $descriptors, $pipes);
+        if (!is_resource($process)) throw new \RuntimeException('FFmpeg启动失败');
+        $stderr = ''; $startTime = time();
+        stream_set_blocking($pipes[2], false);
+        while (true) {
+            $status = proc_get_status($process);
+            if (!$status['running']) break;
+            if (time() - $startTime > $this->timeout) { proc_terminate($process, 9); throw new \RuntimeException('FFmpeg超时'); }
+            $chunk = fread($pipes[2], 4096);
+            if ($chunk !== false && $chunk !== '') $stderr .= $chunk;
+            usleep(100000);
+        }
+        $exitCode = $status['exitcode'] ?? -1;
+        fclose($pipes[1]); fclose($pipes[2]); proc_close($process);
+        if ($exitCode !== 0 || !file_exists($output) || filesize($output) < 1024) { @unlink($output); throw new \RuntimeException('FFmpeg失败(code='.$exitCode.'): '.substr($stderr,-300)); }
+        $header = @file_get_contents($output, false, null, 0, 12);
+        if ($header === false || strpos($header, 'ftyp') === false) { @unlink($output); throw new \RuntimeException('输出非MP4'); }
+    }
+
     private function transcode(string $input, string $output, array $options = []): void
     {
         // Render免费版512MB内存，重编码会OOM超时。改用流拷贝+元数据注入。
@@ -138,6 +145,11 @@ class VideoProcessor
             throw new \RuntimeException('无法创建临时文件');
         }
 
+        // Use same anti-scraping headers as MediaProxy
+        $parts = parse_url($url);
+        $host = $parts['host'] ?? '';
+        $scheme = $parts['scheme'] ?? 'https';
+
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => false,
@@ -145,10 +157,17 @@ class VideoProcessor
             CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_TIMEOUT => 300,
             CURLOPT_FILE => $fp,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            CURLOPT_REFERER => parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST) . '/',
+            CURLOPT_BUFFERSIZE => 262144,
+            CURLOPT_TCP_NODELAY => true,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            CURLOPT_HTTPHEADER => [
+                'Accept: */*',
+                'Accept-Language: zh-CN,zh;q=0.9',
+                'Referer: ' . $scheme . '://' . $host . '/',
+            ],
         ] + HttpClient::getSslOptions());
 
+        // Validate we got actual video, not anti-scraping HTML
         $result = curl_exec($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);

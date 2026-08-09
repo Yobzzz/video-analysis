@@ -152,6 +152,17 @@ if ($path === "/api/v1/process" || $path === "/api/v1/process/") {
         Response::validationError(["url" => "无效的视频链接"]);
     }
 
+    // 短链自动重新解析（CDN直链可能已过期）
+    if (!preg_match('#\.douyinvod\.com|\.zjcdn\.com|\.cdn\.#', $sourceUrl)) {
+        try {
+            $parser = new \App\Services\VideoParser();
+            $parsed = $parser->parse($sourceUrl);
+            $sourceUrl = $parsed['url'] ?? $sourceUrl;
+        } catch (\Exception $e) {
+            // 解析失败，使用原 URL 尝试
+        }
+    }
+
     try {
         $processor = new \App\Services\VideoProcessor();
         $result = $processor->process($sourceUrl, $filename, [

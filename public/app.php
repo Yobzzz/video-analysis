@@ -565,7 +565,7 @@ const ctrl=new AbortController();
 setTimeout(()=>ctrl.abort(),600000);
 try{
 const fd=new FormData();
-fd.append("url",currentResult.data.url);
+fd.append("url",currentResult.url);
 fd.append("filename",currentResult.data.title||"video");
 processBar.style.width="60%";
 const r=await fetch("api/v1/process",{method:"POST",body:fd,signal:ctrl.signal});
