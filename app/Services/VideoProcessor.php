@@ -18,6 +18,9 @@ class VideoProcessor
     public function __construct()
     {
         $this->outputDir = rtrim(Config::get('video_processor.output_dir', __DIR__ . '/../../storage/processed'), '/');
+        if (!is_dir($this->outputDir)) {
+            @mkdir($this->outputDir, 0755, true);
+        }
         $this->timeout   = max(30, (int) Config::get('video_processor.timeout', 300));
     }
 
