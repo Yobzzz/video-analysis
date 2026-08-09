@@ -45,8 +45,22 @@ class VideoProcessor
             return $this->buildResult($outputFile, $filename);
         }
         $this->cleanOldFiles(10);
-        $serverPort = $_SERVER['SERVER_PORT'] ?? '80'; $proxyUrl = 'http://localhost:' . $serverPort . '/index.php?action=media&url=' . urlencode($sourceUrl);
-        $this->transcodeUrl($proxyUrl, $outputFile);
+
+        // 通过 media proxy 下载（复用已验证的反爬headers），保存为处理后文件
+        $serverPort = $_SERVER['SERVER_PORT'] ?? '80';
+        $proxyUrl = 'http://localhost:' . $serverPort . '/index.php?action=media&url=' . urlencode($sourceUrl);
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 300,
+                'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\nReferer: https://www.douyin.com/\r\n",
+            ],
+        ]);
+        $bytes = @copy($proxyUrl, $outputFile, $context);
+        if (!$bytes || filesize($outputFile) < 1024) {
+            @unlink($outputFile);
+            throw new \RuntimeException('处理失败：无法下载视频');
+        }
+
         return $this->buildResult($outputFile, $filename);
     }
 
