@@ -64,9 +64,9 @@ class KuaishouParser extends AbstractParser
 
         // 提取视频 URL — 优先高清版本 (hd15/hd16)
         $videoUrl = '';
-        if (preg_match('#(https?://[^"\s<>]+(?:hd1[56]|photo-video-mz)[^"\s<>]*\.mp4[^"\s<>"]*)#i', $html, $m)) {
+        if (preg_match('#(https?://[^"\s<>]+(?:hd1[56]|photo-video-mz)[^"\s<>]*\.mp4[^"\s<>",);]*)#i', $html, $m)) {
             $videoUrl = $m[1];
-        } elseif (preg_match('#(https?://[^"\s<>]+\.mp4[^"\s<>"]*)#i', $html, $m)) {
+        } elseif (preg_match('#(https?://[^"\s<>]+\.mp4[^"\s<>",);]*)#i', $html, $m)) {
             $videoUrl = $m[1];
         }
         if ($videoUrl === '') {
@@ -91,13 +91,13 @@ class KuaishouParser extends AbstractParser
 
         // 提取封面
         $coverUrl = '';
-        if (preg_match('#(https?://[^"\s<>]+upic[^"\s<>]+\.(?:jpg|jpeg|webp)[^"\s<>"]*)#i', $html, $m)) {
+        if (preg_match('#(https?://[^"\s<>]+upic[^"\s<>]+\.(?:jpg|jpeg|webp)[^"\s<>",);]*)#i', $html, $m)) {
             $coverUrl = $m[1];
         }
 
         // 提取头像
         $avatar = '';
-        if (preg_match('#(https?://[^"\s<>]+uhead[^"\s<>]+_s\.jpg[^"\s<>"]*)#i', $html, $m)) {
+        if (preg_match('#(https?://[^"\s<>]+uhead[^"\s<>]+_s\.jpg[^"\s<>)",;]*)#i', $html, $m)) {
             $avatar = $m[1];
         }
 
