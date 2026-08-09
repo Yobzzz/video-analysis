@@ -46,8 +46,7 @@ class KuaishouParser extends AbstractParser
         }
 
         // 抓取移动端页面
-        $pageUrl = $target; // 使用重定向后的完整 URL（含 query 参数）
-        $ch = curl_init($pageUrl);
+        $ch = curl_init($target);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -63,9 +62,9 @@ class KuaishouParser extends AbstractParser
             throw new \RuntimeException('快手页面不可用 (HTTP ' . $httpCode . ')');
         }
 
-        // 提取视频 URL — 优先高清版本
+        // 提取视频 URL — 优先高清版本 (hd15/hd16)
         $videoUrl = '';
-        if (preg_match('#(https?://[^"\s<>]+(?:hd15|hd16|video-mz)[^"\s<>]*\.mp4[^"\s<>"]*)#i', $html, $m)) {
+        if (preg_match('#(https?://[^"\s<>]+(?:hd1[56]|photo-video-mz)[^"\s<>]*\.mp4[^"\s<>"]*)#i', $html, $m)) {
             $videoUrl = $m[1];
         } elseif (preg_match('#(https?://[^"\s<>]+\.mp4[^"\s<>"]*)#i', $html, $m)) {
             $videoUrl = $m[1];
@@ -74,46 +73,41 @@ class KuaishouParser extends AbstractParser
             throw new \RuntimeException('未找到视频 URL');
         }
 
-        // 提取标题
+        // 提取标题（从 meta description 或 JSON caption）
         $caption = '';
         if (preg_match('/<meta\s+name="description"\s+content="([^"]+)"/i', $html, $m)) {
             $caption = html_entity_decode($m[1], ENT_QUOTES, 'UTF-8');
         } elseif (preg_match('/"caption"\s*:\s*"([^"]+)"/i', $html, $m)) {
             $caption = $m[1];
-        } elseif (preg_match('/<title>([^<]+)<\/title>/i', $html, $m)) {
-            $caption = html_entity_decode($m[1], ENT_QUOTES, 'UTF-8');
-            if ($caption === '快手') $caption = '';
         }
 
-        // 提取封面
-        $coverUrl = '';
-        if (preg_match('#("https?://[^"]+upic[^"]+\.(?:jpg|jpeg|webp)[^"]*")#i', $html, $m)) {
-            $coverUrl = trim($m[1], '"');
-        }
-
-        // 提取作者名（优先找user.name,其次authorName）
+        // 提取作者名（userName 是作者，name 是音乐名）
         $authorName = '';
         if (preg_match('/"userName"\s*:\s*"([^"]+)"/i', $html, $m)) {
             $authorName = $m[1];
         } elseif (preg_match('/"authorName"\s*:\s*"([^"]+)"/i', $html, $m)) {
             $authorName = $m[1];
-        } elseif (preg_match('/"nickName"\s*:\s*"([^"]+)"/i', $html, $m)) {
-            $authorName = $m[1];
+        }
+
+        // 提取封面
+        $coverUrl = '';
+        if (preg_match('#(https?://[^"\s<>]+upic[^"\s<>]+\.(?:jpg|jpeg|webp)[^"\s<>"]*)#i', $html, $m)) {
+            $coverUrl = $m[1];
         }
 
         // 提取头像
         $avatar = '';
-        if (preg_match('#(https?://[^"]+/uhead/[^"]+_s\.jpg[^"]*)#i', $html, $m)) {
+        if (preg_match('#(https?://[^"\s<>]+uhead[^"\s<>]+_s\.jpg[^"\s<>"]*)#i', $html, $m)) {
             $avatar = $m[1];
         }
 
         // 音乐信息
         $musicName = '';
         $musicAvatar = '';
-        if (preg_match('/"author"\s*:\s*"([^"]+)"/i', $html, $m)) {
+        if (preg_match('/"name"\s*:\s*"([^"]+)"/i', $html, $m)) {
             $musicName = $m[1];
         }
-        if (preg_match('#(https?://[^"]+ost/[^"]+\.(?:jpg|png|m4a)[^"]*)#i', $html, $m)) {
+        if (preg_match('#(https?://[^"\s<>]+ost/[^"\s<>]+\.(?:jpg|png)[^"\s<>"]*)#i', $html, $m)) {
             $musicAvatar = $m[1];
         }
 
