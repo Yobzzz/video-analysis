@@ -46,19 +46,39 @@ class VideoProcessor
         }
         $this->cleanOldFiles(10);
 
-        // 通过 media proxy 下载（复用已验证的反爬headers），保存为处理后文件
-        $serverPort = $_SERVER['SERVER_PORT'] ?? '80';
-        $proxyUrl = 'http://localhost:' . $serverPort . '/index.php?action=media&url=' . urlencode($sourceUrl);
-        $context = stream_context_create([
-            'http' => [
-                'timeout' => 300,
-                'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\nReferer: https://www.douyin.com/\r\n",
+        // 直接下载CDN视频（复用media proxy同款headers），避免localhost回环死锁PHP-FPM
+        $fp = fopen($outputFile, 'wb');
+        if (!$fp) throw new \RuntimeException('无法创建输出文件');
+        $ch = curl_init($sourceUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_TIMEOUT => 300,
+            CURLOPT_FILE => $fp,
+            CURLOPT_BUFFERSIZE => 262144,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            CURLOPT_HTTPHEADER => [
+                'Accept: */*',
+                'Accept-Language: zh-CN,zh;q=0.9',
+                'Referer: https://www.douyin.com/',
             ],
-        ]);
-        $bytes = @copy($proxyUrl, $outputFile, $context);
-        if (!$bytes || filesize($outputFile) < 1024) {
+        ] + HttpClient::getSslOptions());
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        fclose($fp);
+
+        if ($httpCode >= 400 || filesize($outputFile) < 1024) {
             @unlink($outputFile);
-            throw new \RuntimeException('处理失败：无法下载视频');
+            throw new \RuntimeException('下载失败 HTTP ' . $httpCode . ($error ? ': ' . $error : ''));
+        }
+        // 验证不是反爬HTML
+        $check = @file_get_contents($outputFile, false, null, 0, 6);
+        if ($check === false || stripos($check, 'html') !== false || stripos($check, '<!DOC') !== false) {
+            @unlink($outputFile);
+            throw new \RuntimeException('CDN返回了HTML页面（反爬），请稍后重试');
         }
 
         return $this->buildResult($outputFile, $filename);
