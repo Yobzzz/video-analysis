@@ -140,6 +140,9 @@ class HttpClient
 
         if ($caFile !== '' && is_file($caFile)) {
             $options[CURLOPT_CAINFO] = $caFile;
+        } else {
+            // 无 CA 证书时降级（本地开发/部分 Windows 环境）
+            $options[CURLOPT_SSL_VERIFYPEER] = false;
         }
 
         return $options;

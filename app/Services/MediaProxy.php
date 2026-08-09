@@ -155,7 +155,9 @@ class MediaProxy
             $curlOptions[CURLOPT_CONNECTTIMEOUT] = 10;
 
             $ch = curl_init($currentUrl);
-            curl_setopt_array($ch, array_replace($curlOptions, HttpClient::getSslOptions()));
+            curl_setopt_array($ch, $curlOptions);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 
             if ($range !== '' && preg_match('/^bytes=\d*-\d*(,\d*-\d*)*$/i', $range)) {
                 curl_setopt($ch, CURLOPT_RANGE, substr($range, 6));
@@ -177,7 +179,7 @@ class MediaProxy
                 if (!headers_sent()) {
                     http_response_code(502);
                     header('Content-Type: text/plain; charset=utf-8');
-                    echo '媒体源连接失败：' . $curlError;
+                    echo '媒体源连接失败：[v2] ' . $curlError;
                 }
                 return;
             }
