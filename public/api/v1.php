@@ -139,64 +139,39 @@ if ($path === "/api/v1/parse" || $path === "/api/v1/parse/") {
     }
 }
 
-// POST /api/v1/process — 视频指纹重编码
-if ($path === "/api/v1/process" || $path === "/api/v1/process/") {
-    if ($method !== "POST") {
-        Response::error("请使用 POST 方法", 405);
+// GET /api/v1/download-proxy — 直通下载（绕过MediaProxy，用于Kuaishou等被封CDN）
+if ($path === "/api/v1/download-proxy" || $path === "/api/v1/download-proxy/") {
+    $dlUrl = trim($_GET["url"] ?? "");
+    if ($dlUrl === "" || !filter_var($dlUrl, FILTER_VALIDATE_URL)) {
+        Response::error("URL 参数不能为空", 400);
     }
+    $dlName = trim($_GET["filename"] ?? "video.mp4");
+    $dlName = preg_replace('/[<>:"\/\\\\|?*]/u', '', $dlName) ?: 'video.mp4';
 
-    $sourceUrl = trim($_POST["url"] ?? "");
-    $filename  = trim($_POST["filename"] ?? "video");
+    // 用 curl 直连 CDN 下载并流式输出
+    $ch = curl_init($dlUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => false,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_CONNECTTIMEOUT => 30,
+        CURLOPT_TIMEOUT => 300,
+        CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        CURLOPT_HTTPHEADER => ['Referer: https://www.kuaishou.com/', 'Accept: */*'],
+        CURLOPT_WRITEFUNCTION => function ($ch, $data) {
+            echo $data;
+            return strlen($data);
+        },
+    ] + (class_exists('App\Utils\HttpClient') ? \App\Utils\HttpClient::getSslOptions() : [CURLOPT_SSL_VERIFYPEER => false]));
 
-    if ($sourceUrl === "" || !filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
-        Response::validationError(["url" => "无效的视频链接"]);
-    }
-
-    // 短链自动重新解析（CDN直链可能已过期）
-    if (!preg_match('#\.douyinvod\.com|\.zjcdn\.com|\.cdn\.#', $sourceUrl)) {
-        try {
-            $parser = new \App\Services\VideoParser();
-            $parsed = $parser->parse($sourceUrl);
-            $sourceUrl = $parsed['url'] ?? $sourceUrl;
-        } catch (\Exception $e) {
-            // 解析失败，使用原 URL 尝试
-        }
-    }
-
-    try {
-        $processor = new \App\Services\VideoProcessor();
-        $result = $processor->process($sourceUrl, $filename, [
-            'noise_alls'  => (int) ($_POST["noise"] ?? 3),
-            'brightness'  => (float) ($_POST["brightness"] ?? 0.05),
-            'contrast'    => (float) ($_POST["contrast"] ?? 1.04),
-            'saturation'  => (float) ($_POST["saturation"] ?? 1.06),
-            'crf'         => (int) ($_POST["crf"] ?? 24),
-            'audio_rate'  => (int) ($_POST["audio_rate"] ?? 48000),
-        ]);
-        Response::success($result, "处理完成");
-    } catch (\RuntimeException $e) {
-        Response::error($e->getMessage(), 500);
-    }
-}
-
-
-// GET /api/v1/download?file=xxx — 下载处理后视频
-if ($path === "/api/v1/download" || $path === "/api/v1/download/") {
-    $file = trim($_GET["file"] ?? "");
-    if ($file === "" || strpos($file, "..") !== false || strpos($file, "/") !== false) {
-        Response::error("无效的文件名", 400);
-    }
-    $storageFile = __DIR__ . "/../../storage/processed/" . $file;
-    if (!file_exists($storageFile) || !is_file($storageFile)) {
-        Response::error("文件不存在", 404);
-    }
-    header("Content-Type: video/mp4");
-    header("Content-Length: " . filesize($storageFile));
-    header('Content-Disposition: attachment; filename="' . addslashes($file) . '"');
-    header("Accept-Ranges: bytes");
-    readfile($storageFile);
+    header('Content-Type: video/mp4');
+    header('Content-Disposition: attachment; filename="' . addslashes($dlName) . '"');
+    header('Accept-Ranges: bytes');
+    curl_exec($ch);
+    curl_close($ch);
     exit;
 }
+
+// POST /api/v1/process — 视频指纹重编码
 // 404
 Response::error("接口不存在", 404);
 

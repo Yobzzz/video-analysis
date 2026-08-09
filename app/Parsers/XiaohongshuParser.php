@@ -4,109 +4,149 @@ declare(strict_types=1);
 
 namespace App\Parsers;
 
-use App\Utils\HttpClient;
-use App\Utils\UserAgent;
+use App\Contracts\AbstractParser;
 
 /**
- * 小红书视频/笔记解析器
+ * 小红书解析器 — __INITIAL_STATE__ 提取（参考 qianxunbainian/jiexi）
+ * 支持视频/图文/实况
  */
-class XiaohongshuParser extends BaseParser
+class XiaohongshuParser extends AbstractParser
 {
-    protected static function getHeaders(): array
+    private const MOBILE_UA = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36';
+
+    public static function getHeaders(): array
     {
-        return [
-            "User-Agent" => UserAgent::mobile(),
-            "Referer" => "https://www.xiaohongshu.com/",
-        ];
+        return ['User-Agent' => self::MOBILE_UA, 'Referer' => 'https://www.xiaohongshu.com/'];
     }
 
     public static function parse(string $url): array
     {
-        $location = HttpClient::getLocation($url);
-        $target = $location ?: $url;
+        // 预处理：xhs.com → xhslink.com
+        $url = str_replace('xhs.com', 'xhslink.com', $url);
 
-        // 提取 note_id
-        if (!preg_match('/explore\/([a-f0-9]+)|discovery\/item\/([a-f0-9]+)/i', $target, $match)) {
-            // 尝试匹配短链接格式
-            if (preg_match('/(?:discovery\/item\/|explore\/)([a-f0-9]+)/i', $target, $m2)) {
-                $noteId = $m2[1];
-            } else {
-                throw new \InvalidArgumentException("无法解析小红书笔记 ID");
-            }
-        } else {
-            $noteId = $match[1] ?: $match[2];
+        $domain = parse_url($url, PHP_URL_HOST);
+        if ($domain !== 'www.xiaohongshu.com') {
+            $location = \App\Utils\HttpClient::getLocation($url);
+            $url = $location ?: $url;
         }
 
-        // 小红书没有公开的无 token API，通过页面 SSR 数据提取
-        $result = self::fetch("https://www.xiaohongshu.com/explore/{$noteId}");
+        $id = self::extractId($url);
+        if (!$id) throw new \InvalidArgumentException('无法识别小红书笔记 ID');
 
-        if (!$result) {
-            throw new \RuntimeException("解析笔记信息失败");
+        // 抓取页面
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_USERAGENT => self::MOBILE_UA,
+            CURLOPT_REFERER => 'https://www.xiaohongshu.com/',
+        ] + self::sslOptions());
+        $html = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if (!$html || $httpCode >= 400) {
+            // 备用 UA 重试
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                CURLOPT_REFERER => 'https://www.xiaohongshu.com/',
+            ] + self::sslOptions());
+            $html = curl_exec($ch);
+            curl_close($ch);
         }
 
-        $html = $result["data"];
+        if (!$html) throw new \RuntimeException('小红书页面不可用');
 
-        // 从 window.__INITIAL_STATE__ 提取数据
-        if (!preg_match('/window\.__INITIAL_STATE__\s*=\s*({.*?});\s*</s', $html, $matches)) {
-            throw new \RuntimeException("提取页面数据失败");
+        // 提取 __INITIAL_STATE__
+        $data = self::extractFromInitialState($html, $id);
+        if ($data !== null) return $data;
+
+        // Token + API 降级
+        $token = '';
+        if (preg_match('/token=(.*?)&/', $html, $m)) $token = $m[1];
+        elseif (preg_match('/"xsec_token":\s*"([^"]+)"/', $html, $m)) $token = $m[1];
+
+        if ($token) {
+            $apiUrl = "https://www.xiaohongshu.com/discovery/item/{$id}?app_platform=android&app_version=8.69.5&share_from_user_hidden=true&xsec_source=app_share&type=video&xsec_token={$token}";
+            $ch = curl_init($apiUrl);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 15, CURLOPT_USERAGENT => self::MOBILE_UA] + self::sslOptions());
+            $apiHtml = curl_exec($ch); curl_close($ch);
+            if ($apiHtml) $data = self::extractFromInitialState($apiHtml, $id);
         }
 
-        $data = self::parseJson(trim($matches[1]));
-        $note = $data["note"]["noteDetailMap"] ?? null;
+        if ($data !== null) return $data;
+        throw new \RuntimeException('解析失败，未找到有效内容');
+    }
 
-        // 尝试不同的数据路径
-        if (!$note) {
-            foreach ($data["note"] ?? [] as $key => $val) {
-                if (is_array($val) && isset($val["note"])) {
-                    $note = $val;
-                    break;
+    private static function extractFromInitialState(string $html, string $id): ?array
+    {
+        if (!preg_match('/<script>\s*window\.__INITIAL_STATE__\s*=\s*({[\s\S]*?})<\/script>/is', $html, $m)) return null;
+
+        $jsonStr = str_replace('undefined', 'null', $m[1]);
+        $json = json_decode($jsonStr, true);
+        if (!$json) return null;
+
+        $note = $json['note']['noteDetailMap'][$id]['note'] ?? $json['noteData']['data']['noteData'] ?? null;
+        if (!$note) return null;
+
+        $type = $note['type'] ?? '';
+        if ($type === 'normal') $type = 'image';
+
+        // 封面
+        $cover = '';
+        if (!empty($note['imageList'])) {
+            $fi = $note['imageList'][0];
+            $cover = $fi['urlPre'] ?? $fi['urlDefault'] ?? $fi['url'] ?? '';
+        }
+
+        // 视频 URL
+        $videoUrl = '';
+        if ($type === 'video') {
+            $streams = [];
+            foreach (['h265', 'h264'] as $codec) {
+                foreach (($note['video']['media']['stream'][$codec] ?? []) as $s) {
+                    $s['_codec'] = $codec;
+                    $streams[] = $s;
                 }
             }
-        }
-
-        $noteData = $note["note"] ?? $note;
-        if (!$noteData) {
-            throw new \RuntimeException("笔记数据解析失败");
-        }
-
-        $videoUrl = "";
-        // 视频链接可能在不同位置
-        $video = $noteData["video"] ?? [];
-        if ($video) {
-            $media = $video["media"] ?? [];
-            $stream = $media["stream"] ?? [];
-            if ($stream) {
-                $masterUrl = $stream["master_url"] ?? "";
-                if ($masterUrl) {
-                    $videoUrl = $masterUrl;
-                }
+            if ($streams) {
+                usort($streams, fn($a, $b) => ($b['avgBitrate'] ?? 0) - ($a['avgBitrate'] ?? 0));
+                $videoUrl = $streams[0]['masterUrl'] ?? '';
             }
-            // 备用路径
-            if (!$videoUrl) {
-                $consumerList = $video["consumer"] ?? [];
-                if ($consumerList && isset($consumerList["origin_url_key"])) {
-                    $videoUrl = $video[$consumerList["origin_url_key"]] ?? "";
-                }
-                if (!$videoUrl) {
-                    $videoUrl = $video["url"] ?? "";
-                }
+            if (!$videoUrl && isset($note['video']['consumer']['originVideoKey'])) {
+                $videoUrl = 'http://sns-video-bd.xhscdn.com/' . $note['video']['consumer']['originVideoKey'];
             }
         }
 
-        if (!$videoUrl) {
-            throw new \RuntimeException("未找到视频 URL（该笔记可能为图文）");
-        }
-
-        $user = $noteData["user"] ?? [];
         return [
-            "author" => $user["nickname"] ?? "",
-            "uid" => $user["userId"] ?? "",
-            "avatar" => $user["avatar"] ?? "",
-            "like" => $noteData["likedCount"] ?? $noteData["interactInfo"]["likedCount"] ?? 0,
-            "time" => $noteData["time"] ?? $noteData["createTime"] ?? 0,
-            "title" => $noteData["title"] ?? $noteData["desc"] ?? "",
-            "cover" => ($noteData["imageList"][0]["urlDefault"] ?? $noteData["cover"]["urlDefault"] ?? ""),
-            "url" => self::fixUrl($videoUrl),
+            'author' => $note['user']['nickname'] ?? $note['user']['nickName'] ?? '',
+            'uid'    => (string)($note['user']['userId'] ?? $id),
+            'avatar' => $note['user']['avatar'] ?? '',
+            'like'   => $note['interactInfo']['likedCount'] ?? 0,
+            'time'   => $note['time'] ?? 0,
+            'title'  => $note['title'] ?? $note['desc'] ?? '',
+            'cover'  => $cover,
+            'url'    => $type === 'video' ? self::fixUrl($videoUrl) : '',
+            'music'  => ['author' => '', 'avatar' => ''],
         ];
+    }
+
+    private static function extractId(string $url): ?string
+    {
+        foreach (['/discovery/item/(\w+)', '/explore/(\w+)', '/item/(\w+)', '/note/(\w+)'] as $p) {
+            if (preg_match("#{$p}#i", $url, $m)) return $m[1];
+        }
+        return null;
+    }
+
+    private static function sslOptions(): array
+    {
+        if (class_exists('App\Utils\HttpClient')) return \App\Utils\HttpClient::getSslOptions();
+        return [CURLOPT_SSL_VERIFYPEER => false];
     }
 }

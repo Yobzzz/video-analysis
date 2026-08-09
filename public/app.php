@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="zh">
 <head>
@@ -34,7 +33,6 @@
   --rm: 5px;
   --motion: 0.25s ease;
 }
-
 :root.dark {
   --key: #f8fafc;
   --ink: #e5eef7;
@@ -55,11 +53,9 @@
   --shadow: 0 0 10px rgba(0, 0, 0, 0.12);
   --shadow-hover: 0 4px 18px rgba(0, 0, 0, 0.2);
 }
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
-
 /* Reset & Base */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -77,7 +73,6 @@ button, input, textarea, a { font: inherit; }
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 :focus-visible { outline: 3px solid var(--theme-shadow); outline-offset: 2px; }
-
 /* Header */
 .topbar {
   background: var(--paper);
@@ -125,7 +120,6 @@ a { color: inherit; text-decoration: none; }
   transition: all var(--motion);
 }
 .theme-toggle:hover { background: var(--soft); color: var(--ink); }
-
 /* Main Layout */
 .workspace {
   width: min(1200px, calc(100% - 40px));
@@ -137,7 +131,6 @@ a { color: inherit; text-decoration: none; }
   align-items: start;
 }
 .main-column { min-width: 0; }
-
 /* Intro */
 .intro { margin: 0 0 28px; }
 .eyebrow {
@@ -155,7 +148,6 @@ a { color: inherit; text-decoration: none; }
 }
 .intro h1 em { color: var(--theme); font-style: normal; }
 .intro p { max-width: 560px; margin: 0; color: var(--muted); font-size: 15px; }
-
 /* Panel / Card */
 .panel {
   background: var(--paper);
@@ -166,7 +158,7 @@ a { color: inherit; text-decoration: none; }
 }
 .ingest-panel { padding: 28px; }
 .panel-heading {
-  display: flex; align-items: flex-start; justify-content: space-between;
+  align-items: flex-start; justify-content: space-between;
   gap: 18px; margin-bottom: 24px;
 }
 .panel-kicker {
@@ -176,7 +168,6 @@ a { color: inherit; text-decoration: none; }
 }
 .panel-title { margin: 0; font-size: 19px; line-height: 1.2; font-weight: 800; color: var(--key); }
 .panel-note { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
-
 /* Mode Switch */
 .mode-switch {
   display: inline-flex; gap: 2px; padding: 3px;
@@ -193,7 +184,6 @@ a { color: inherit; text-decoration: none; }
   background: var(--theme); color: #fff;
   box-shadow: 0 2px 8px var(--theme-shadow);
 }
-
 /* Form Elements */
 .field-label { display: block; margin-bottom: 8px; color: var(--ink); font-size: 13px; font-weight: 700; }
 .input-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px 116px; gap: 9px; }
@@ -211,7 +201,6 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 0 0 3px var(--theme-soft);
 }
 .batch-input { min-height: 142px; padding: 13px 14px; resize: vertical; line-height: 1.6; }
-
 /* Buttons */
 .icon-btn, .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -260,7 +249,6 @@ a { color: inherit; text-decoration: none; }
 .btn-quiet:hover { color: var(--ink); background: var(--soft); }
 .batch-actions { display: flex; gap: 8px; margin-top: 12px; }
 .input-hint { margin: 10px 0 0; color: var(--muted2); font-size: 12px; }
-
 /* Platform Strip */
 .platform-strip {
   display: flex; flex-wrap: wrap; gap: 8px;
@@ -274,7 +262,6 @@ a { color: inherit; text-decoration: none; }
   background: var(--soft); color: var(--muted); font-size: 12px;
 }
 .platform-chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--chip); }
-
 /* State / Error */
 .state-row {
   display: flex; align-items: center; gap: 9px;
@@ -294,9 +281,8 @@ a { color: inherit; text-decoration: none; }
   background: var(--danger-soft); color: var(--danger); font-size: 13px;
 }
 .error-alert svg { flex: 0 0 auto; margin-top: 2px; }
-
 /* Result Panel */
-.result-panel, .batch-panel { margin-top: 28px; overflow: hidden; }
+.result-panel, .batch-panel { margin-top: 28px; overflow: hidden; padding: 0 28px; }
 .result-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
@@ -350,7 +336,6 @@ a { color: inherit; text-decoration: none; }
 }
 .result-actions .btn { text-decoration: none; }
 .result-actions .btn-copy-row { flex-basis: 100%; display: flex; gap: 8px; margin-top: 0; }
-
 /* Batch Panel */
 .section-heading {
   display: flex; align-items: center; justify-content: space-between;
@@ -394,7 +379,6 @@ a { color: inherit; text-decoration: none; }
 @keyframes pulse { to { opacity: 0.55; } }
 .batch-item.is-error { background: var(--danger-soft); }
 .batch-item.is-error .batch-title { color: var(--danger); }
-
 /* Sidebar */
 .sidebar { display: grid; gap: 16px; position: sticky; top: 84px; }
 .side-panel { padding: 18px; }
@@ -466,21 +450,18 @@ a { color: inherit; text-decoration: none; }
   transition: all var(--motion);
 }
 .clear-btn:hover { background: var(--danger-soft); color: var(--danger); }
-
 /* Footer */
-footer {
-  width: min(1200px, calc(100% - 40px));
-  margin: auto; padding: 0 0 32px;
+.main-foot {
+  margin-top: auto; padding: 32px 0 20px; text-align: center;
   color: var(--muted2); font-size: 12px;
 }
-
 /* Responsive */
 @media (max-width: 980px) {
   .workspace { grid-template-columns: 1fr; }
   .sidebar { position: static; grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr); align-items: start; }
 }
 @media (max-width: 720px) {
-  .topbar-inner, .workspace, footer { width: min(100% - 28px, 1200px); }
+  .topbar-inner, .workspace { width: min(100% - 28px, 1200px); }
   .workspace { padding: 28px 0 40px; gap: 20px; }
   .intro h1 { font-size: 28px; }
   .ingest-panel { padding: 20px; }
@@ -500,7 +481,6 @@ footer {
   .batch-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .result-actions .btn { flex: 1 1 calc(50% - 8px); }
 }
-
 .en{display:none !important}html[lang=en] .zh{display:none !important}html[lang=en] .en{display:inline !important}.lang-btn{width:34px;height:34px;padding:0;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:var(--r);background:transparent;color:var(--muted);font-size:13px;font-weight:700;transition:all var(--motion);cursor:pointer}.lang-btn:hover{background:var(--soft);color:var(--ink)}</style>
 </head>
 <body>
@@ -509,22 +489,19 @@ footer {
   <div class="main-column">
     <section class="intro" aria-labelledby="page-title"><span class="eyebrow"></span><h1 id="page-title"><span class="zh">分享链接，<em>直接变成</em>可用视频。</span><span class="en">Share a link, <em>get</em> a usable video.</span></h1><p><span class="zh">粘贴短视频分享链接，快速整理出无水印视频。解析结果、下载和最近记录都在同一个工作区完成。</span><span class="en">Paste short video links to extract watermark-free videos. Results, downloads, and history — all in one workspace.</span></p></section>
     <section class="panel ingest-panel" aria-label="视频解析入口">
-      <div class="panel-heading"><div><p class="panel-kicker"><span class="zh">导入链接</span><span class="en">Import link</span></p><h2 class="panel-title"><span class="zh">从一个链接开始</span><span class="en">Start with a Link</span></h2><p class="panel-note"><span class="zh">支持公开分享链接，不需要登录第三方平台。</span><span class="en">No login required. Works with public share links.</span></p></div><div class="mode-switch" role="group" aria-label="解析模式"><button id="single-mode-btn" class="mode-btn active" type="button" aria-pressed="true" data-zh="单个解析" data-en="Single">单个解析</button><button id="batch-mode-btn" class="mode-btn" type="button" aria-pressed="false" data-zh="批量处理" data-en="Batch">批量处理</button></div></div>
+      <div class="panel-heading"><div><p class="panel-kicker"><span class="zh">导入链接</span><span class="en">Import link</span></p><h2 class="panel-title"><span class="zh">从一个链接开始</span><span class="en">Start with a Link</span></h2><p class="panel-note"><span class="zh">支持公开分享链接，不需要登录第三方平台。</span><span class="en">No login required. Works with public share links.</span></p></di</div>
       <div id="single-panel"><label id="mode-label" class="field-label" for="video-url"><span class="zh">视频分享链接</span><span class="en">Video Share Link</span></label><div class="input-row"><div class="input-wrap"><input id="video-url" type="url" data-zh="粘贴抖音、快手、B站、小红书、视频号链接" data-en="Paste Douyin/Kuaishou/Bilibili/RED/Channels links..." autocomplete="off" spellcheck="false"></div><button id="paste-btn" class="icon-btn" type="button" title="Paste from clipboard" aria-label="Paste from clipboard"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"></rect><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"></path></svg></button><button id="parse-btn" class="btn btn-primary" type="button"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg><span data-zh="开始解析" data-en="Parse">开始解析</span></button></div><p class="input-hint"><span class="zh">小提示：也可以直接粘贴包含文字的整段分享文案，系统会自动提取链接。</span><span class="en">Tip: Paste full share text — links are auto-extracted.</span></p></div>
-      <div id="batch-panel" hidden><label class="field-label" for="batch-input"><span class="zh">每行放一个视频链接</span><span class="en">One link per line</span></label><textarea id="batch-input" class="batch-input" rows="5" placeholder="https://...&#10;https://...&#10;https://..." autocomplete="off" spellcheck="false" aria-label="批量视频链接"></textarea><div class="batch-actions"><button id="batch-parse-btn" class="btn btn-primary" type="button"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg><span data-zh="开始批量处理" data-en="Start Batch">开始批量处理</span></button><button id="batch-stop-btn" class="btn btn-quiet" type="button" hidden data-zh="停止处理" data-en="Stop">停止处理</button></div></div>
       <div class="platform-strip" aria-label="支持平台"><span class="platform-chip" style="--chip:#2d6cdf"><i></i><span class="zh">抖音</span><span class="en">Douyin</span></span><span class="platform-chip" style="--chip:#10a77a"><i></i><span class="zh">快手</span><span class="en">Kuaishou</span></span><span class="platform-chip" style="--chip:#e86d94"><i></i><span class="zh">B站</span><span class="en">Bilibili</span></span><span class="platform-chip" style="--chip:#e64555"><i></i><span class="zh">小红书</span><span class="en">RED</span></span><span class="platform-chip" style="--chip:#4d9d91"><i></i><span class="zh">视频号</span><span class="en">Channels</span></span></div>
-      <div id="loading" class="state-row" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="loading-text"><span class="zh">正在读取视频信息…</span><span class="en">Loading video info...</span></span></div><div id="batch-progress" class="state-row" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="batch-progress-text"></span></div>
+      <div id="loading" class="state-row" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="loading-text"><span class="zh">正在读取视频信息…</span><span class="en">Loading video info...</span></span></div>
       <div id="error" class="error-alert" role="alert" aria-live="assertive" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg><span id="error-text"></span></div>
     </section>
-    <section id="result" class="panel result-panel" hidden aria-label="解析结果"><div class="result-layout"><div class="result-video-wrap"><video id="result-video" controls playsinline preload="metadata" crossorigin="anonymous"></video></div><div class="result-info"><span id="result-platform" class="result-tag"><span class="zh">解析完成</span><span class="en">Parse Complete</span></span><h2 id="result-title" class="result-title"></h2><p id="result-meta" class="result-meta"></p><div class="creator-row"><img id="result-avatar" class="avatar" alt="" hidden><div><div class="creator-label"><span class="zh">发布作者</span><span class="en">Author</span></div><div id="result-author" class="creator-name"></div></div></div><dl class="result-stats"><div class="result-stat"><dt><span class="zh">点赞</span><span class="en">Likes</span></dt><dd id="result-like">-</dd></div><div class="result-stat"><dt><span class="zh">发布时间</span><span class="en">Posted</span></dt><dd id="result-time">-</dd></div></dl><div class="result-actions"><button id="process-btn" class="btn btn-accent" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="14 2 18 6 14 10"></polygon><path d="M3 21v-7h12v7"></path><path d="M3 10h12"></path><path d="M3 3v4h12v-4"></path></svg><span data-zh="重新处理" data-en="Fingerprint">重新处理</span></button><a id="download-btn" class="btn btn-primary" download target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg><span data-zh="下载视频" data-en="Download">下载视频</span></a><div class="btn-copy-row"><button id="copy-btn" class="btn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path></svg><span data-zh="复制链接" data-en="Copy Link">复制链接</span></button><button id="copy-text-btn" class="btn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg><span data-zh="复制文案" data-en="Copy Text">复制文案</span></button></div></div></div></div></section>
-    <section id="batch-results" class="panel batch-panel" hidden aria-label="批量解析结果"><div class="section-heading"><div><h2><span class="zh">批量处理结果</span><span class="en">Batch Results</span></h2><p><span class="zh">完成的项目可以直接播放、下载或复制文案。</span><span class="en">Play, download, or copy results.</span></p></div><span id="batch-summary" class="batch-summary"></span></div><div id="batch-list" class="batch-list"></div><div id="batch-empty" class="batch-empty" hidden><span class="zh">还没有批量任务。</span><span class="en">No batch tasks yet.</span></div></section>
+    <section id="result" class="panel result-panel" hidden aria-label="解析结果"><div class="result-layout"><div class="result-video-wrap"><video id="result-video" controls playsinline preload="metadata" crossorigin="anonymous"></video></div><div class="result-info"><span id="result-platform" class="result-tag"><span class="zh">解析完成</span><span class="en">Parse Complete</span></span><h2 id="result-title" class="result-title"></h2><p id="result-meta" class="result-meta"></p><div class="creator-row"><img id="result-avatar" class="avatar" alt="" hidden><div><div class="creator-label"><span class="zh">发布作者</span><span class="en">Author</span></div><div id="result-author" class="creator-name"></div></div></div><dl class="result-stats"><div class="result-stat"><dt><span class="zh">点赞</span><span class="en">Likes</span></dt><dd id="result-like">-</dd></div><div class="result-stat"><dt><span class="zh">发布时间</span><span class="en">Posted</span></dt><dd id="result-time">-</dd></div></dl><div class="result-actions"><a id="download-btn" class="btn btn-primary" download target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg><span data-zh="下载视频" data-en="Download">下载视频</span></a><div class="btn-copy-row"><button id="copy-btn" class="btn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path></svg><span data-zh="复制链接" data-en="Copy Link">复制链接</span></button><button id="copy-text-btn" class="btn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg><span data-zh="复制文案" data-en="Copy Text">复制文案</span></button></div></div></div></div></section>
   </div>
   <aside class="sidebar"><section id="history" class="panel side-panel" aria-label="最近解析"><div class="side-heading"><div><h2><span class="zh">最近处理</span><span class="en">Recent</span></h2><p><span class="zh">只保存在当前浏览器</span><span class="en">Stored in Browser</span></p></div><span id="history-count" class="count-badge">0</span></div><div id="history-list" class="history-list"></div><div id="history-empty" class="history-empty"><div class="history-empty-icon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4z"></path><path d="M8 9h8"></path><path d="M8 13h5"></path></svg></div><strong><span class="zh">这里还没有记录</span><span class="en">No History Yet</span></strong><span><span class="zh">解析完成后会自动出现在这里</span><span class="en">Results appear here automatically.</span></span></div><div class="side-divider"></div><button id="clear-history-btn" class="clear-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2-2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> <span data-zh="清空记录" data-en="Clear">清空记录</span></button></section><section class="panel side-panel" aria-label="工作台信息"><div class="side-heading"><div><h2><span class="zh">工作台</span><span class="en">Workspace</span></h2><p><span class="zh">让每次整理更顺手</span><span class="en">Tools for your workflow.</span></p></div></div><div class="quick-list"><div class="quick-row"><span class="quick-label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span class="zh">单个解析</span><span class="en">Single</span></span><strong class="quick-value"><span class="zh">即时</span><span class="en">Instant</span></strong></div><div class="quick-row"><span class="quick-label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg><span class="zh">批量处理</span><span class="en">Batch</span></span><strong class="quick-value"><span class="zh">最多 20 条，点一下即可复用。</span><span class="en">Up to 20 items. Click to reuse.</span></strong></div><div class="quick-row"><span class="quick-label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><path d="M3 12h18"></path></svg><span class="zh">记录方式</span><span class="en">Storage</span></span><strong class="quick-value"><span class="zh">本地保存</span><span class="en">Local</span></strong></div></div></section></aside>
+<div class="main-foot"><span class="zh">Video Analysis</span><span class="en">Video Analysis</span></div>
 </main>
-<div id="process-modal" class="process-modal" hidden><div class="process-modal-bg"></div><div class="process-modal-box"><h3 id="process-title"><span class="zh">视频指纹处理中</span><span class="en">Processing Video</span></h3><div class="process-bar-wrap"><div class="process-bar"></div></div><div id="process-done" class="process-done" hidden><button id="process-dl-btn" class="btn btn-primary" type="button"><span class="zh">下载处理后视频</span><span class="en">Download Processed</span></button><p class="process-md5" id="process-md5"></p></div><button id="process-close" class="process-close-btn" type="button"><span class="zh">关闭</span><span class="en">Close</span></button></div></div>
-<footer><span class="zh">Video Analysis</span><span class="en">Video Analysis</span></footer>
 <script>
-const $=s=>document.querySelector(s),input=$('#video-url'),parseBtn=$('#parse-btn'),pasteBtn=$('#paste-btn'),singleModeBtn=$('#single-mode-btn'),batchModeBtn=$('#batch-mode-btn'),singlePanel=$('#single-panel'),batchPanel=$('#batch-panel'),batchInput=$('#batch-input'),batchParseBtn=$('#batch-parse-btn'),batchStopBtn=$('#batch-stop-btn'),loading=$('#loading'),loadingText=$('#loading-text'),batchProgress=$('#batch-progress'),batchProgressText=$('#batch-progress-text'),errorBox=$('#error'),errorText=$('#error-text'),result=$('#result'),video=$('#result-video'),avatar=$('#result-avatar'),titleEl=$('#result-title'),metaEl=$('#result-meta'),authorEl=$('#result-author'),likeEl=$('#result-like'),timeEl=$('#result-time'),platformEl=$('#result-platform'),downloadBtn=$('#download-btn'),copyBtn=$('#copy-btn'),copyTextBtn=$('#copy-text-btn'),processBtn=$('#process-btn'),historyList=$('#history-list'),historyEmpty=$('#history-empty'),historyCount=$('#history-count'),clearHistoryBtn=$('#clear-history-btn'),batchSection=$('#batch-results'),batchList=$('#batch-list'),batchEmpty=$('#batch-empty'),batchSummary=$('#batch-summary'),themeToggle=$('#theme-toggle'),modeLabel=$('#mode-label'),processModal=$('#process-modal'),processBar=$('.process-bar'),processTitle=$('#process-title'),processDone=$('#process-done'),processDlBtn=$('#process-dl-btn'),processClose=$('#process-close'),processMd5=$('#process-md5');
+const $=s=>document.querySelector(s),input=$('#video-url'),parseBtn=$('#parse-btn'),pasteBtn=$('#paste-btn'),loading=$('#loading'),loadingText=$('#loading-text'),errorBox=$('#error'),errorText=$('#error-text'),result=$('#result'),video=$('#result-video'),avatar=$('#result-avatar'),titleEl=$('#result-title'),metaEl=$('#result-meta'),authorEl=$('#result-author'),likeEl=$('#result-like'),timeEl=$('#result-time'),platformEl=$('#result-platform'),downloadBtn=$('#download-btn'),copyBtn=$('#copy-btn'),copyTextBtn=$('#copy-text-btn'),historyList=$('#history-list'),historyEmpty=$('#history-empty'),historyCount=$('#history-count'),clearHistoryBtn=$('#clear-history-btn'),themeToggle=$('#theme-toggle');
 const HISTORY_KEY='watermark-parse-history-v1',HISTORY_LIMIT=20,URL_PATTERN=/https?:\/\/[^\s"'<>，。；：！？【】（）《》]+/i;
 const PLAY_ICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>',DOWNLOAD_ICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>',COPY_ICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2 2v1"></path></svg>',TRASH_ICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
 let ignoreMediaError=false,currentResult=null,batchItems=[],batchRunning=false,batchCancelRequested=false;
@@ -533,59 +510,18 @@ function platformName(url){const h=(String(url).match(/^https?:\/\/([^/]+)/i)||[
 function formatTime(v){if(!v&&v!==0)return'';if(typeof v==='number'||/^\\d{10}$/.test(String(v))){const s=typeof v==='number'?v:parseInt(v,10);if(s<1000000000)return'';const d=new Date(s*1000);if(Number.isNaN(d.getTime()))return'';return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}return String(v)}
 function formatCount(v){if(v===undefined||v===null||v==='')return'-';const n=Number(v);return Number.isFinite(n)?new Intl.NumberFormat('zh-CN',{notation:'compact',maximumFractionDigits:1}).format(n):String(v)}
 function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function mediaUrl(url){if(/kwaicdn\.com|oskwai\.com|yximgs\.com/i.test(url))return url;return'index.php?action=media&url='+encodeURIComponent(url)}function buildDownloadUrl(url,title){if(/kwaicdn\.com|oskwai\.com/i.test(url))return url;return'dl/'+encodeURIComponent((title||'video').slice(0,60).replace(/[<>:"/\\|?*]/g,'')||'video')+'.mp4?url='+encodeURIComponent(url)}
-function setMode(mode){const one=mode==='single';singlePanel.hidden=!one;batchPanel.hidden=one;singleModeBtn.classList.toggle('active',one);batchModeBtn.classList.toggle('active',!one);singleModeBtn.setAttribute('aria-pressed',String(one));batchModeBtn.setAttribute('aria-pressed',String(!one));modeLabel.textContent=one?'视频分享链接':'每行放一个视频链接';(one?input:batchInput).focus()}
+function mediaUrl(url){if(/kwaicdn\.com|oskwai\.com|yximgs\.com/i.test(url))return url;return'index.php?action=media&url='+encodeURIComponent(url)}function buildDownloadUrl(url,title){if(/kwaicdn\.com|oskwai\.com/i.test(url))return"api/v1/download-proxy?url="+encodeURIComponent(url)+"&filename="+encodeURIComponent((title||"video")+".mp4");return'dl/'+encodeURIComponent((title||'video').slice(0,60).replace(/[<>:"/\\|?*]/g,'')||'video')+'.mp4?url='+encodeURIComponent(url)}
 function setLoading(on){loading.hidden=!on;parseBtn.disabled=on;loadingText.textContent=on?'正在读取视频信息…':''}function showError(m){errorText.textContent=m||'解析失败，请稍后再试';errorBox.hidden=false}function hideError(){errorBox.hidden=true;errorText.textContent=''}
 function hideResult(){result.hidden=true;ignoreMediaError=true;currentResult=null;video.removeAttribute('src');video.removeAttribute('poster');video.load()}
 async function requestParse(url){const r=await fetch('api/v1/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})}),j=await r.json().catch(()=>null);if(!r.ok||!j||!j.success||!j.data||!j.data.url)throw new Error(j&&j.message||'解析失败，请稍后再试');return{url,data:j.data}}
 async function parseUrlIntoResult(url){hideError();hideResult();setLoading(true);try{const item=await requestParse(url);renderResult(item.data,item.url);addHistory(item);renderHistory();result.scrollIntoView({behavior:'smooth',block:'start'})}catch(e){showError(e.message||'解析失败，请稍后再试')}finally{setLoading(false)}}
 async function parseVideo(){const raw=input.value.trim();if(!raw){showError('请先粘贴一个视频分享链接');input.focus();return}const url=extractUrl(raw);if(!/^https?:\/\//i.test(url)){showError('请输入有效的视频链接');return}await parseUrlIntoResult(url)}
-function renderResult(data,raw){const vu=data.url||'',cover=data.cover||'';ignoreMediaError=false;currentResult={url:raw,data};video.src=mediaUrl(vu);if(cover)video.poster=cover;else video.removeAttribute('poster');titleEl.textContent=data.title||'未命名视频';authorEl.textContent=data.author||'未知作者';platformEl.textContent=platformName(raw)+' · 解析完成';metaEl.textContent=[platformName(raw),formatTime(data.time)].filter(Boolean).join(' · ');likeEl.textContent=formatCount(data.like);timeEl.textContent=formatTime(data.time)||'-';if(data.avatar){avatar.src=data.avatar;avatar.hidden=false}else{avatar.removeAttribute('src');avatar.hidden=true}downloadBtn.href=buildDownloadUrl(vu,data.title);downloadBtn.setAttribute('download',(data.title||'video')+'.mp4');result.hidden=false}
+function renderResult(data,raw){const vu=data.url||'',cover=data.cover||'';ignoreMediaError=false;currentResult={url:raw,data};video.src=mediaUrl(vu);if(cover)video.poster=cover;else video.removeAttribute('poster');titleEl.textContent=data.title||'未命名视频';authorEl.textContent=data.author||'未知作者';platformEl.textContent=platformName(raw)+' · 解析完成';metaEl.textContent=[platformName(raw),formatTime(data.time)].filter(Boolean).join(' · ');likeEl.textContent=formatCount(data.like);timeEl.textContent=formatTime(data.time)||'-';if(data.avatar){avatar.src=data.avatar;avatar.hidden=false}else{avatar.removeAttribute('src');avatar.hidden=true}downloadBtn.href=buildDownloadUrl(vu,data.title);downloadBtn.setAttribute('download',(data.title||'video')+'.mp4');downloadBtn.dataset.dlUrl=mediaUrl(vu);downloadBtn.dataset.dlFilename=(data.title||'video')+'.mp4';result.hidden=false}
 function loadHistory(){try{const x=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}}function saveHistory(x){localStorage.setItem(HISTORY_KEY,JSON.stringify(x))}function addHistory(item){const list=loadHistory().filter(x=>x.rawUrl!==item.url);list.unshift({rawUrl:item.url,title:item.data.title||'',author:item.data.author||'',like:item.data.like??0,time:item.data.time??0,cover:item.data.cover||'',videoUrl:item.data.url||'',savedAt:Date.now()});saveHistory(list.slice(0,HISTORY_LIMIT))}function removeHistory(i){const list=loadHistory();list.splice(i,1);saveHistory(list);renderHistory()}
-function historyItemHtml(item,i){return'<article class="history-entry" data-index="'+i+'"><div class="history-thumb history-thumb-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div><div class="history-copy"><h3 class="history-title">'+esc(item.title||'未命名视频')+'</h3><p class="history-meta">'+esc([platformName(item.rawUrl),formatTime(item.time)].filter(Boolean).join(' · '))+'</p></div><div class="history-actions"><button type="button" data-action="reparse" title="重新解析" aria-label="重新解析">'+'↻</button><button type="button" data-action="delete" title="删除" aria-label="删除">'+'✕</button></div></article>'}function renderHistory(){const list=loadHistory();historyCount.textContent=String(list.length);historyEmpty.hidden=list.length>0;historyList.innerHTML=list.map(historyItemHtml).join('')}
-function setBatchRunning(on){batchRunning=on;batchParseBtn.disabled=on;batchStopBtn.hidden=!on;batchProgress.hidden=!on;batchParseBtn.querySelector('span').textContent=on?'处理中…':'开始批量处理'}function updateBatchSummary(){const ok=batchItems.filter(x=>x&&x.data).length,fail=batchItems.filter(x=>x&&x.error).length;batchSummary.textContent=[ok?'成功 '+ok:'',fail?'失败 '+fail:''].filter(Boolean).join(' · ')}
-function batchItemHtml(item,i){if(item.loading)return'<article class="batch-item is-loading" data-index="'+i+'"><div class="batch-thumb"></div><div class="batch-content"><h3 class="batch-title">处理中</h3><p class="batch-meta">正在读取视频信息…</p></div><div class="batch-actions"><span class="batch-meta">请稍候</span></div></article>';if(item.error)return'<article class="batch-item is-error" data-index="'+i+'"><div class="batch-content"><h3 class="batch-title">'+esc(item.url)+'</h3><p class="batch-meta">'+esc(item.error)+'</p></div><div class="batch-actions"><button class="btn" type="button" data-action="retry">重试</button></div></article>';const d=item.data;return'<article class="batch-item" data-index="'+i+'"><div class="batch-thumb batch-thumb-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div><div class="batch-content"><h3 class="batch-title">'+esc(d.title||'未命名视频')+'</h3><p class="batch-meta">'+esc(platformName(item.url))+' · '+esc(d.author||'未知作者')+' · 点赞 '+esc(formatCount(d.like))+'</p></div><div class="batch-actions"><button class="btn" type="button" data-action="play">'+PLAY_ICON+'播放</button><a class="btn" href="'+esc(buildDownloadUrl(d.url,d.title))+'" download="'+esc((d.title||'video')+'.mp4')+'" target="_blank" rel="noopener">'+DOWNLOAD_ICON+'下载</a><button class="btn" type="button" data-action="copy">'+COPY_ICON+'复制</button></div></article>'}
-function renderBatchList(){batchEmpty.hidden=batchItems.length>0;batchList.innerHTML=batchItems.map(batchItemHtml).join('');updateBatchSummary()}
-async function parseBatch(){const urls=batchInput.value.split(/\n/).map(extractUrl).map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x)).filter((x,i,a)=>a.indexOf(x)===i);if(!urls.length){showError('请先粘贴至少一个有效的视频链接');return}hideError();batchItems=urls.map(url=>({url,loading:true}));batchCancelRequested=false;batchSection.hidden=false;renderBatchList();setBatchRunning(true);let done=0,next=0;async function worker(){while(!batchCancelRequested){const i=next++;if(i>=urls.length)return;const url=urls[i];try{batchItems[i]=await requestParse(url);addHistory(batchItems[i])}catch(e){batchItems[i]={url,error:e.message||'解析失败'}}done++;batchProgressText.textContent='正在处理 '+done+'/'+urls.length;renderBatchList()}}await Promise.all(Array.from({length:Math.min(3,urls.length)},()=>worker()));if(batchCancelRequested)batchItems=batchItems.map(x=>x&&x.loading?{url:x.url,error:'已停止处理'}:x);renderBatchList();renderHistory();setBatchRunning(false);batchProgressText.textContent=batchCancelRequested?'已停止':'已完成 '+urls.length+' 项';batchSection.scrollIntoView({behavior:'smooth',block:'start'})}
-async function retryBatchItem(i){const old=batchItems[i];if(!old||batchRunning)return;batchItems[i]={url:old.url,loading:true};renderBatchList();try{batchItems[i]=await requestParse(old.url);addHistory(batchItems[i])}catch(e){batchItems[i]={url:old.url,error:e.message||'解析失败'}}renderBatchList();renderHistory()}
-async function copyText(text){try{await navigator.clipboard.writeText(text)}catch(e){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}}function flashButton(b,text){const s=b.querySelector('span');if(!s)return;const old=s.textContent;s.textContent=text;setTimeout(()=>s.textContent=old,1200)}function buildShareText(x){return[x.data.title||'未命名视频',platformName(x.url),'无水印链接：'+buildDownloadUrl(x.data.url,x.data.title)].join('\\n')}
-historyList.addEventListener('click',async e=>{const card=e.target.closest('.history-entry'),a=e.target.closest('[data-action]');if(!card||!a)return;const item=loadHistory()[Number(card.dataset.index)];if(!item)return;const action=a.dataset.action;if(action==='reparse'){setMode('single');input.value=item.rawUrl;await parseUrlIntoResult(item.rawUrl)}if(action==='copy'){await copyText(item.rawUrl);a.innerHTML='✓';setTimeout(()=>a.innerHTML=COPY_ICON,1000)}if(action==='delete')removeHistory(Number(card.dataset.index))});clearHistoryBtn.addEventListener('click',()=>{saveHistory([]);renderHistory()});
-batchList.addEventListener('click',async e=>{const card=e.target.closest('.batch-item'),a=e.target.closest('[data-action]');if(!card||!a)return;const item=batchItems[Number(card.dataset.index)];if(!item)return;if(a.dataset.action==='play'&&item.data){setMode('single');input.value=item.url;await parseUrlIntoResult(item.url)}if(a.dataset.action==='copy'&&item.data){await copyText(buildShareText(item));a.textContent='已复制';setTimeout(()=>{a.innerHTML=COPY_ICON+'复制'},1000)}if(a.dataset.action==='retry')await retryBatchItem(Number(card.dataset.index))});
-parseBtn.addEventListener('click',parseVideo);input.addEventListener('keydown',e=>{if(e.key==='Enter')parseVideo()});batchParseBtn.addEventListener('click',parseBatch);batchStopBtn.addEventListener('click',()=>{batchCancelRequested=true;batchProgressText.textContent='正在停止…'});batchInput.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')parseBatch()});singleModeBtn.addEventListener('click',()=>setMode('single'));batchModeBtn.addEventListener('click',()=>setMode('batch'));pasteBtn.addEventListener('click',async()=>{try{const text=await navigator.clipboard.readText(),target=singlePanel.hidden?batchInput:input;target.value=extractUrl(text);target.focus()}catch(e){showError('无法读取剪贴板，请手动粘贴')}});copyBtn.addEventListener('click',async()=>{if(currentResult&&downloadBtn.href){await copyText(downloadBtn.href);flashButton(copyBtn,'已复制')}});copyTextBtn.addEventListener('click',async()=>{if(currentResult){await copyText(buildShareText(currentResult));flashButton(copyTextBtn,'已复制')}});processBtn.addEventListener('click',startProcess);video.addEventListener('error',()=>{if(!ignoreMediaError){video.style.opacity='0.3';const p=document.createElement('p');p.className='video-fallback';p.innerHTML='<span class=zh>预览不可用，请点下载按钮</span><span class=en>Preview unavailable, use download</span>';video.parentElement.appendChild(p)}});
-async function startProcess(){
-if(!currentResult||!currentResult.data||!currentResult.data.url){showError("请先解析视频");return}
-processModal.hidden=false;
-processDone.hidden=true;
-processBar.style.background="";
-processBar.style.width="0";
-processTitle.innerHTML='<span class="zh">视频指纹处理中...</span><span class="en">Processing...</span>';
-processBtn.disabled=true;
-processBar.style.width="30%";
-const ctrl=new AbortController();
-setTimeout(()=>ctrl.abort(),600000);
-try{
-const fd=new FormData();
-fd.append("url",currentResult.url);
-fd.append("filename",currentResult.data.title||"video");
-processBar.style.width="60%";
-const r=await fetch("api/v1/process",{method:"POST",body:fd,signal:ctrl.signal});
-const j=await r.json().catch(()=>null);
-processBar.style.width="95%";
-if(!r.ok||!j||!j.success)throw new Error((j&&j.message)||"处理失败");
-processBar.style.width="100%";
-processTitle.innerHTML='<span class="zh">视频指纹处理完成</span><span class="en">Fingerprint Complete</span>';
-processDone.hidden=false;
-processDlBtn.dataset.dlUrl=j.data.url;
-processDlBtn.dataset.dlFilename=j.data.filename;
-processMd5.textContent="MD5: "+j.data.md5.slice(0,16)+"  |  "+Math.round(j.data.size/1024/1024)+"MB";
-processBtn.disabled=false
-}catch(e){
-processBar.style.width="100%";
-processBar.style.background="#e64555";
-processTitle.innerHTML=e.name==="AbortError"?'<span class=zh>处理超时</span><span class=en>Timed out</span>':'<span class=zh>视频指纹处理失败，请重新处理</span><span class=en>Processing failed, please retry</span>';
-processBtn.disabled=false
-}}
-processDlBtn.addEventListener('click',async()=>{const u=processDlBtn.dataset.dlUrl,f=processDlBtn.dataset.dlFilename;if(!u||!f)return;const btn=processDlBtn,orig=btn.textContent;btn.textContent='Processing...';btn.disabled=true;try{const r=await fetch(u),blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=f;a.click();URL.revokeObjectURL(a.href);btn.textContent=orig;btn.disabled=false}catch(e){btn.textContent='Download Failed';setTimeout(()=>{btn.textContent=orig;btn.disabled=false},2000)}});processClose.addEventListener('click',()=>{processModal.hidden=true;processBar.style.width='0';processBar.style.background='';processDone.hidden=true})
+function historyItemHtml(item,i){return'<article class="history-entry" data-index="'+i+'"><div class="history-thumb history-thumb-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div><div class="history-copy"><h3 class="history-title">'+esc(item.title||'未命名视频')+'</h3><p class="history-meta">'+esc([platformName(item.rawUrl),formatTime(item.time)].filter(Boolean).join(' · '))+'</p></div><div class="history-actions"><button type="button" data-action="reparse" title="重新解析" aria-label="重新解析">↻</button><button type="button" data-action="delete" title="删除" aria-label="删除">✕</button></div></article>'}function renderHistory(){const list=loadHistory();historyCount.textContent=String(list.length);historyEmpty.hidden=list.length>0;historyList.innerHTML=list.map(historyItemHtml).join('')}async function copyText(text){try{await navigator.clipboard.writeText(text)}catch(e){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}}function flashButton(b,text){const s=b.querySelector('span');if(!s)return;const old=s.textContent;s.textContent=text;setTimeout(()=>s.textContent=old,1200)}function buildShareText(x){return[x.data.title||'未命名视频',platformName(x.url),'无水印链接：'+buildDownloadUrl(x.data.url,x.data.title)].join('\\n')}
+historyList.addEventListener('click',async e=>{const card=e.target.closest('.history-entry'),a=e.target.closest('[data-action]');if(!card||!a)return;const item=loadHistory()[Number(card.dataset.index)];if(!item)return;const action=a.dataset.action;if(action==='reparse'){input.value=item.rawUrl;await parseUrlIntoResult(item.rawUrl)}if(action==='copy'){await copyText(item.rawUrl);a.innerHTML='✓';setTimeout(()=>a.innerHTML=COPY_ICON,1000)}if(action==='delete')removeHistory(Number(card.dataset.index))});clearHistoryBtn.addEventListener('click',()=>{saveHistory([]);renderHistory()});
+parseBtn.addEventListener('click',parseVideo);input.addEventListener('keydown',e=>{if(e.key==='Enter')parseVideo()});pasteBtn.addEventListener('click',async()=>{try{const text=await navigator.clipboard.readText();input.value=extractUrl(text);input.focus()}catch(e){showError('无法读取剪贴板，请手动粘贴')}});copyBtn.addEventListener('click',async()=>{if(currentResult&&downloadBtn.href){await copyText(downloadBtn.href);flashButton(copyBtn,'已复制')}});copyTextBtn.addEventListener('click',async()=>{if(currentResult){await copyText(buildShareText(currentResult));flashButton(copyTextBtn,'已复制')}});video.addEventListener('error',()=>{if(!ignoreMediaError){video.style.opacity='0.3';const p=document.createElement('p');p.className='video-fallback';p.innerHTML='<span class=zh>预览不可用，请点下载按钮</span><span class=en>Preview unavailable, use download</span>';video.parentElement.appendChild(p)}});
+downloadBtn.addEventListener('click',async e=>{const url=downloadBtn.dataset.dlUrl;if(!url)return;if(/kwaicdn\.com|oskwai\.com|download-proxy/i.test(downloadBtn.href))return;e.preventDefault();const f=downloadBtn.dataset.dlFilename||'video.mp4',orig=downloadBtn.textContent;downloadBtn.textContent='下载中...';downloadBtn.disabled=true;try{const r=await fetch(url),blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=f;a.click();URL.revokeObjectURL(a.href)}catch(er){console.error(er)}downloadBtn.textContent=orig;downloadBtn.disabled=false});
 function applyTheme(theme){document.documentElement.classList.toggle('dark',theme==='dark');themeToggle.innerHTML=theme==='dark'?'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path></svg>':'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.7A8.5 8.5 0 0 1 9.3 3.5 8.5 8.5 0 1 0 20.5 14.7z"></path></svg>';themeToggle.title=theme==='dark'?'切换浅色主题':'切换深色主题';themeToggle.setAttribute('aria-label',themeToggle.title);localStorage.setItem('watermark-parse-theme-v2',theme)}function preferredTheme(){const saved=localStorage.getItem('watermark-parse-theme-v2');return saved==='dark'||saved==='light'?saved:'light'}
 function applyLang(l){var r=document.documentElement;r.setAttribute("lang",l);var b=document.getElementById("lang-toggle");if(b){b.textContent=l==="zh"?"EN":"\u4e2d";b.title=l==="zh"?"Switch to English":"\u5207\u6362\u5230\u4e2d\u6587"}var els=document.querySelectorAll("[data-en]");for(var i=0;i<els.length;i++){var el=els[i];if(el.tagName==="SPAN"||el.tagName==="BUTTON")el.textContent=l==="zh"?el.getAttribute("data-zh")||el.textContent:el.getAttribute("data-en")}localStorage.setItem("va-lang",l);var inp=document.getElementById("video-url");if(inp)inp.placeholder=l==="zh"?inp.getAttribute("data-zh"):inp.getAttribute("data-en")}
 function preferredLang(){var s=localStorage.getItem("va-lang");return s==="zh"||s==="en"?s:"zh"}

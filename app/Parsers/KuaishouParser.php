@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Parsers;
 
 use App\Contracts\AbstractParser;
+use App\Utils\HttpClient;
+use App\Utils\UserAgent;
 
 /**
- * 快手视频解析器 — INIT_STATE 提取（参考 qianxunbainian/jiexi）
+ * 快手视频解析器 — GraphQL + INIT_STATE 降级
  */
 class KuaishouParser extends AbstractParser
 {
@@ -16,28 +18,75 @@ class KuaishouParser extends AbstractParser
     public static function getHeaders(): array
     {
         return [
-            'User-Agent' => self::MOBILE_UA,
-            'Referer' => 'https://www.kuaishou.com/',
+            "User-Agent" => UserAgent::mobile(),
+            "Referer" => "https://www.kuaishou.com/",
         ];
     }
 
     public static function parse(string $url): array
     {
-        // 1. 跟随重定向
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_NOBODY => true,
-            CURLOPT_USERAGENT => self::MOBILE_UA,
-        ] + self::sslOptions());
-        curl_exec($ch);
-        $redirect = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL) ?: $url;
-        curl_close($ch);
+        $photoId = self::extractPhotoId($url);
+        if ($photoId === '') {
+            throw new \InvalidArgumentException("无法解析快手视频 ID");
+        }
 
-        // 2. 获取页面内容
-        $ch = curl_init($redirect);
+        // 策略1: GraphQL API (like reference)
+        $result = self::fetch("https://www.kuaishou.com/graphql", json_encode([
+            "operationName" => "visionPhotoDetail",
+            "query" => "query visionPhotoDetail(\$photoId: String) { visionPhotoDetail(photoId: \$photoId) { photo { id caption coverUrl duration likeCount viewCount photoUrl timestamp user { id name avatar } music { id name author coverUrl } } } }",
+            "variables" => ["photoId" => $photoId],
+        ], JSON_UNESCAPED_SLASHES));
+
+        if ($result) {
+            $data = self::parseJson($result["data"]);
+            $photo = $data["data"]["visionPhotoDetail"]["photo"] ?? null;
+            if ($photo && !empty($photo["photoUrl"])) {
+                return [
+                    "author" => $photo["user"]["name"] ?? "",
+                    "uid" => $photo["user"]["id"] ?? "",
+                    "avatar" => $photo["user"]["avatar"] ?? "",
+                    "like" => $photo["likeCount"] ?? 0,
+                    "time" => $photo["timestamp"] ?? 0,
+                    "title" => $photo["caption"] ?? "",
+                    "cover" => $photo["coverUrl"] ?? "",
+                    "url" => self::fixUrl($photo["photoUrl"]),
+                    "music" => [
+                        "author" => $photo["music"]["author"] ?? "",
+                        "avatar" => $photo["music"]["coverUrl"] ?? "",
+                    ],
+                ];
+            }
+        }
+
+        // 策略2: INIT_STATE HTML 降级
+        $html = self::fetchPage($url);
+        if ($html) {
+            return self::parseFromHtml($html, $photoId);
+        }
+
+        throw new \RuntimeException("解析视频信息失败");
+    }
+
+    private static function extractPhotoId(string $url): string
+    {
+        $location = HttpClient::getLocation($url);
+        $target = $location ?: $url;
+
+        if (preg_match('/(?:photo|short-video)\/(\w+)/i', $target, $match)) {
+            return $match[1];
+        }
+        if (preg_match('#/(?:v|video)/(\w+)#i', $target, $m2)) {
+            return $m2[1];
+        }
+        if (preg_match('/photoId=(\w+)/i', $target, $m)) {
+            return $m[1];
+        }
+        return '';
+    }
+
+    private static function fetchPage(string $url): string|false
+    {
+        $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -48,136 +97,80 @@ class KuaishouParser extends AbstractParser
         $html = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-
-        if (!$html || $httpCode >= 400) {
-            throw new \RuntimeException('快手页面不可用 (HTTP ' . $httpCode . ')');
-        }
-
-        // 3. 提取 INIT_STATE（含完整视频数据）
-        $data = self::parseInitState($html, $redirect);
-        if ($data !== null) {
-            return $data;
-        }
-
-        // 4. 降级：从 HTML 提取
-        return self::parseFromHtml($html);
+        return ($httpCode === 200 && $html) ? $html : false;
     }
 
-    /**
-     * 从 window.INIT_STATE 提取完整数据
-     */
-    private static function parseInitState(string $html, string $url): ?array
+    private static function parseFromHtml(string $html, string $photoId): array
     {
-        if (!preg_match('/window\.INIT_STATE\s*=\s*(.*?)<\/script>/s', $html, $m)) {
-            return null;
-        }
-
-        $json = rtrim(trim($m[1]), ';');
-        $data = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            // 容错清理
-            $json = stripslashes($json);
-            $json = str_replace(['"{"err_msg":"launchApplication:fail"}"', '"{"err_msg":"system:access_denied"}"'], ['err_msg','err_msg'], $json);
-            $data = json_decode($json, true);
-            if (json_last_error() !== JSON_ERROR_NONE) return null;
-        }
-
-        // 遍历提取第一个有效媒体对象
+        // INIT_STATE
         $photo = null;
-        $stack = [$data];
-        while (!empty($stack)) {
-            $node = array_shift($stack);
-            if (!is_array($node)) continue;
-            if (isset($node['photo']) && is_array($node['photo']) && isset($node['photo']['photoUrl'])) {
-                $photo = $node['photo'];
-                break;
+        if (preg_match('/window\.INIT_STATE\s*=\s*(.*?)<\/script>/s', $html, $m)) {
+            $js = rtrim(trim($m[1]), ';');
+            $d = json_decode($js, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $js = stripslashes($js);
+                $d = json_decode($js, true);
             }
-            foreach ($node as $v) {
-                if (is_array($v)) $stack[] = $v;
+            if ($d) {
+                $stack = [$d];
+                while (!empty($stack)) {
+                    $node = array_shift($stack);
+                    if (!is_array($node)) continue;
+                    if (isset($node['photo']) && is_array($node['photo']) && !empty($node['photo']['photoUrl'])) {
+                        $photo = $node['photo'];
+                        break;
+                    }
+                    foreach ($node as $v) if (is_array($v)) $stack[] = $v;
+                }
             }
         }
 
-        if (!$photo) return null;
+        if ($photo) {
+            $music = $photo['music'] ?? $photo['soundTrack'] ?? [];
+            return [
+                "author" => $photo['userName'] ?? "",
+                "uid" => $photoId,
+                "avatar" => $photo['headUrl'] ?? "",
+                "like" => $photo['likeCount'] ?? 0,
+                "time" => $photo['timestamp'] ?? 0,
+                "title" => $photo['caption'] ?? "",
+                "cover" => $photo['coverUrls'][0]['url'] ?? "",
+                "url" => self::fixUrl($photo['photoUrl']),
+                "music" => [
+                    "author" => $music['artist'] ?? $music['author'] ?? $music['name'] ?? "",
+                    "avatar" => $music['imageUrls'][0]['url'] ?? $music['avatarUrls'][0]['url'] ?? "",
+                ],
+            ];
+        }
 
-        $videoUrl = $photo['photoUrl'] ?? '';
-        if (!$videoUrl) return null;
-
-        // 提取 photoId
-        $photoId = '';
-        if (preg_match('/photoId=(\w+)/i', $url, $mm)) $photoId = $mm[1];
-        elseif (preg_match('#/(\w+)(?:\?|$)#', $url, $mm)) $photoId = $mm[1];
-
-        // 音乐
-        $music = $photo['music'] ?? $photo['soundTrack'] ?? [];
-        $musicData = [
-            'author' => $music['artist'] ?? $music['author'] ?? $music['name'] ?? '',
-            'avatar' => $music['imageUrls'][0]['url'] ?? $music['avatarUrls'][0]['url'] ?? $music['coverUrls'][0]['url'] ?? '',
-        ];
-
-        return [
-            'author' => $photo['userName'] ?? '',
-            'uid'    => $photoId,
-            'avatar' => $photo['headUrl'] ?? '',
-            'like'   => $photo['likeCount'] ?? 0,
-            'time'   => $photo['timestamp'] ?? 0,
-            'title'  => $photo['caption'] ?? '',
-            'cover'  => $photo['coverUrls'][0]['url'] ?? $photo['coverUrl'] ?? '',
-            'url'    => self::fixUrl($videoUrl),
-            'music'  => $musicData,
-        ];
-    }
-
-    /**
-     * HTML 降级解析
-     */
-    private static function parseFromHtml(string $html): array
-    {
+        // HTML fallback
         $videoUrl = '';
         if (preg_match('#(https?://[^"\s<>]+(?:hd1[56]|photo-video-mz)[^"\s<>]*\.mp4[^"\s<>",);]*)#i', $html, $m)) {
             $videoUrl = $m[1];
         } elseif (preg_match('#(https?://[^"\s<>]+\.mp4[^"\s<>",);]*)#i', $html, $m)) {
             $videoUrl = $m[1];
         }
-        if (!$videoUrl) {
-            throw new \RuntimeException('未找到视频 URL');
-        }
+        if (!$videoUrl) throw new \RuntimeException("未找到视频 URL");
 
-        $caption = '';
+        $caption = ''; $author = ''; $cover = ''; $avatar = ''; $musicName = ''; $musicCover = '';
         if (preg_match('/"caption"\s*:\s*"([^"]+)"/i', $html, $m)) $caption = $m[1];
-
-        $author = '';
         if (preg_match('/"userName"\s*:\s*"([^"]+)"/i', $html, $m)) $author = $m[1];
-
-        $cover = '';
         if (preg_match('#(https?://[^"\s<>]+upic[^"\s<>]+\.(?:jpg|jpeg|webp)[^"\s<>",);]*)#i', $html, $m)) $cover = $m[1];
-
-        $avatar = '';
         if (preg_match('#(https?://[^"\s<>]+uhead[^"\s<>]+_s\.jpg[^"\s<>)",;]*)#i', $html, $m)) $avatar = $m[1];
-
-        $musicName = '';
         if (preg_match('/"name"\s*:\s*"([^"]+)"/i', $html, $m)) $musicName = $m[1];
-        $musicCover = '';
         if (preg_match('#(https?://[^"\s<>]+ost/[^"\s<>]+\.(?:jpg|png)[^"\s<>",);]*)#i', $html, $m)) $musicCover = $m[1];
 
         return [
-            'author' => $author,
-            'uid'    => '',
-            'avatar' => $avatar,
-            'like'   => 0,
-            'time'   => 0,
-            'title'  => $caption,
-            'cover'  => $cover,
-            'url'    => self::fixUrl($videoUrl),
-            'music'  => ['author' => $musicName, 'avatar' => $musicCover],
+            "author" => $author, "uid" => $photoId, "avatar" => $avatar,
+            "like" => 0, "time" => 0, "title" => $caption, "cover" => $cover,
+            "url" => self::fixUrl($videoUrl),
+            "music" => ["author" => $musicName, "avatar" => $musicCover],
         ];
     }
 
     private static function sslOptions(): array
     {
-        if (class_exists('App\Utils\HttpClient')) {
-            return \App\Utils\HttpClient::getSslOptions();
-        }
+        if (class_exists('App\Utils\HttpClient')) return \App\Utils\HttpClient::getSslOptions();
         return [CURLOPT_SSL_VERIFYPEER => false];
     }
 }

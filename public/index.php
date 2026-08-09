@@ -46,48 +46,9 @@ if ($method === 'HEAD') {
     exit;
 }
 
-// 处理后的视频下载（Nginx rewrite: /dl/processed/{filename}）
-if ($method === 'GET' && ($_GET['action'] ?? '') === 'processed-dl') {
-    $file = trim($_GET['file'] ?? '');
-    if ($file !== '' && strpos($file, '..') === false && strpos($file, '/') === false) {
-        $storageFile = __DIR__ . '/../storage/processed/' . $file;
-        if (file_exists($storageFile) && is_file($storageFile)) {
-            header('Content-Type: video/mp4');
-            header('Content-Length: ' . filesize($storageFile));
-            header('Content-Disposition: attachment; filename="' . addslashes($file) . '"');
-            header('Accept-Ranges: bytes');
-            header('Cache-Control: no-cache');
-            readfile($storageFile);
-            exit;
-        }
-    }
-    http_response_code(404);
-    exit;
-}
-
 // 媒体代理路由：为浏览器提供可播放/可下载的服务端转发
 if ($method === 'GET' && ($_GET['action'] ?? '') === 'media') {
     $filename = trim($_GET['filename'] ?? '') ?: 'video.mp4';
-
-    // 处理后视频 — 文件名有proc_前缀则从本地存储直出
-    if (strpos($filename, 'proc_') === 0) {
-        $realFile = substr($filename, 5);
-        $storageFile = __DIR__ . '/../storage/processed/' . $realFile;
-        $tmpFile = '/tmp/video-processed/' . $realFile;
-        if (!file_exists($storageFile) && file_exists($tmpFile)) {
-            $storageFile = $tmpFile;
-        }
-        if (file_exists($storageFile) && is_file($storageFile)) {
-            header('Content-Type: video/mp4');
-            header('Content-Length: ' . filesize($storageFile));
-            header('Content-Disposition: attachment; filename="' . addslashes($realFile) . '"');
-            header('Accept-Ranges: bytes');
-            readfile($storageFile);
-            exit;
-        }
-        http_response_code(404);
-        exit;
-    }
 
     $mediaUrl = trim($_GET['url'] ?? '');
     if ($mediaUrl === '' || !filter_var($mediaUrl, FILTER_VALIDATE_URL) || !preg_match('/^https?:\/\//i', $mediaUrl)) {
