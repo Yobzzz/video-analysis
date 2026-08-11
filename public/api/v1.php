@@ -147,6 +147,9 @@ if ($path === "/api/v1/download-proxy" || $path === "/api/v1/download-proxy/") {
     }
     $dlName = trim($_GET["filename"] ?? "video.mp4");
     $dlName = preg_replace('/[<>:"\/\\\\|?*]/u', '', $dlName) ?: 'video.mp4';
+    if (!preg_match('/\.mp4$/i', $dlName)) {
+        $dlName = preg_replace('/\.[^.]+$/i', '', $dlName) . '.mp4';
+    }
 
     // 用 curl 直连 CDN 下载并流式输出
     $ch = curl_init($dlUrl);
@@ -164,7 +167,7 @@ if ($path === "/api/v1/download-proxy" || $path === "/api/v1/download-proxy/") {
     ] + (class_exists('App\Utils\HttpClient') ? \App\Utils\HttpClient::getSslOptions() : [CURLOPT_SSL_VERIFYPEER => false]));
 
     header('Content-Type: video/mp4');
-    header('Content-Disposition: attachment; filename="' . addslashes($dlName) . '"');
+    header('Content-Disposition: attachment; filename="' . addslashes($dlName) . '"; filename*=UTF-8\'\'' . rawurlencode($dlName));
     header('Accept-Ranges: bytes');
     curl_exec($ch);
     curl_close($ch);

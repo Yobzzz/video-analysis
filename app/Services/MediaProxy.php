@@ -231,7 +231,11 @@ class MediaProxy
                 header('Accept-Ranges: bytes');
             }
             if ($download) {
-                header("Content-Disposition: attachment; filename*=UTF-8''" . rawurlencode($filename));
+                // 同时下发 ASCII 安全的 filename= 与扩展 filename*= 两种形式。
+                // 仅下发 filename*= 时，部分移动端浏览器/微信内置浏览器无法解析，
+                // 会回退到 URL 最后一段（如 index.php）作为文件名，导致下载出 .php 文件。
+                $safeName = self::safeAsciiFilename($filename);
+                header('Content-Disposition: attachment; filename="' . $safeName . '"; filename*=UTF-8\'\'' . rawurlencode($filename));
             }
             return;
         }
@@ -277,6 +281,30 @@ class MediaProxy
         }
 
         header($name . ': ' . $value);
+    }
+
+    /**
+     * 生成 ASCII 安全且一定以 .mp4 结尾的下载文件名。
+     *
+     * 移动端浏览器/微信内置浏览器在无法解析 filename*= 时会回退到 URL 路径名，
+     * 因此这里必须保证普通 filename= 是 ASCII 且带 .mp4 后缀，避免下载到 .php 文件。
+     */
+    private static function safeAsciiFilename(string $filename): string
+    {
+        $name = (string) $filename;
+        // 去掉目录分隔与路径，只保留文件名本身
+        $name = basename(str_replace('\\', '/', $name));
+        // 仅保留可打印 ASCII（剔除中文及非常规字符）
+        $ascii = (string) preg_replace('/[^\x20-\x7E]/u', '', $name);
+        $ascii = trim($ascii);
+        // 去掉首个点及其后的全部扩展名，避免 .mp4.exe 这类情况
+        $ascii = (string) preg_replace('/\..*$/', '', $ascii);
+        $ascii = trim($ascii, '. ');
+        if ($ascii === '' || $ascii === '.') {
+            $ascii = 'video';
+        }
+        // 统一以 .mp4 结尾，杜绝下载出 .php 等非视频后缀
+        return $ascii . '.mp4';
     }
 
     private static function respondError(int $status, string $message): void
