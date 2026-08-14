@@ -67,8 +67,8 @@ $acceptsHtml = $method === 'GET'
     && stripos($_SERVER['HTTP_ACCEPT'], 'text/html') !== false;
 
 if ($acceptsHtml) {
-    // Cache the HTML page for 5 minutes on the client
-    header('Cache-Control: public, max-age=300, must-revalidate');
+    // 本地开发：前端 JS 常改动，禁用缓存，改完立即生效
+    header('Cache-Control: no-cache, private');
     header('Vary: Accept-Encoding, Cookie');
     require __DIR__ . '/app.php';
     exit;

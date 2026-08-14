@@ -78,13 +78,7 @@ class MediaProxy
 
             $parts = parse_url($currentUrl);
             $host = $parts['host'] ?? '';
-            $referer = ($parts['scheme'] ?? 'https') . '://' . $host;
-            // Kuaishou/Douyin CDN requires platform referer
-            if (preg_match('/kwai|chenzhongtech|yximgs|oskwai/i', $host)) {
-                $referer = 'https://www.kuaishou.com/';
-            } elseif (preg_match('/douyinpic\.com|douyinvod\.com|zjcdn\.com/i', $host)) {
-                $referer = 'https://www.douyin.com/';
-            }
+            $referer = self::refererForHost($host, ($parts['scheme'] ?? 'https') . '://' . $host);
             $requestHeaders = [
                 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
                 'Accept: */*',
@@ -199,6 +193,41 @@ class MediaProxy
         }
 
         self::respondError(502, '媒体源重定向次数过多');
+    }
+
+    /**
+     * 平台 CDN 防盗链 Referer 映射（公共工具）
+     *
+     * 各平台 CDN 直链要求固定 Referer，否则返回 403：
+     *  - 快手 kwaicdn/oskwai → kuaishou.com
+     *  - 抖音 douyinvod/douyinpic → douyin.com
+     *  - B站 bilivideo/hdslb → bilibili.com
+     *  - 小红书 xhscdn → xiaohongshu.com
+     *  - 视频号 wxsnsdy → channels.weixin.qq.com
+     * 未知域名回退为自身 host，避免被 SSRF 场景误带外部 Referer。
+     *
+     * @param string $host 媒体 URL 的 host
+     * @param string $fallback 未命中平台时使用的 Referer（默认媒体自身 origin）
+     */
+    public static function refererForHost(string $host, string $fallback = ''): string
+    {
+        if (preg_match('/kwai|chenzhongtech|yximgs|oskwai/i', $host)) {
+            return 'https://www.kuaishou.com/';
+        }
+        if (preg_match('/douyinpic\.com|douyinvod\.com|zjcdn\.com|douyin\.com/i', $host)) {
+            return 'https://www.douyin.com/';
+        }
+        if (preg_match('/bilivideo\.com|hdslb\.com|bilibili\.com/i', $host)) {
+            // B站 upos CDN 防盗链：Referer 必须是 bilibili.com，否则 openresty 返回 403 Forbidden
+            return 'https://www.bilibili.com/';
+        }
+        if (preg_match('/xhscdn\.com|xiaohongshu\.com/i', $host)) {
+            return 'https://www.xiaohongshu.com/';
+        }
+        if (preg_match('/wxsnsdy|findermp\.video\.qq\.com|mpvideo\.qpic\.cn|weixin\.qq\.com/i', $host)) {
+            return 'https://channels.weixin.qq.com/';
+        }
+        return $fallback !== '' ? $fallback : 'https://' . $host . '/';
     }
 
     private static function handleUpstreamHeader(string $line, array &$state, bool $download, string $filename): void

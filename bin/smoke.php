@@ -9,17 +9,12 @@ use App\Services\MediaProxy;
 use App\Utils\Config;
 use App\Utils\HttpClient;
 
+// 与 App\Services\VideoParser::PLATFORMS 保持一致（当前支持的 5 个平台）
 $classes = [
     App\Parsers\DouyinParser::class,
     App\Parsers\KuaishouParser::class,
     App\Parsers\BilibiliParser::class,
-    App\Parsers\PipixiaParser::class,
-    App\Parsers\WeiboParser::class,
-    App\Parsers\XiguaParser::class,
     App\Parsers\ShipinhaoParser::class,
-    App\Parsers\IzuiyouParser::class,
-    App\Parsers\PipigxParser::class,
-    App\Parsers\WeishiParser::class,
     App\Parsers\XiaohongshuParser::class,
 ];
 

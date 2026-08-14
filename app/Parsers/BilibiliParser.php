@@ -93,7 +93,7 @@ class BilibiliParser extends AbstractParser
             return null;
         }
 
-        if (preg_match('/BV\w+/i', $url, $m)) return $m[1];
+        if (preg_match('/(BV\w+)/i', $url, $m)) return $m[1];
         return null;
     }
 

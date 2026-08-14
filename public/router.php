@@ -14,7 +14,9 @@ declare(strict_types=1);
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/');
 $file = __DIR__ . $uri;
 
-if ($uri !== '/' && file_exists($file) && is_file($file)) {
+// index.php 是前端控制器（含 ?action=media 媒体代理），必须显式执行；
+// 直接 return false 在 php -S 下等价于执行，但在 FastCGI 网关下会返回空响应。
+if ($uri !== '/' && $uri !== '/index.php' && file_exists($file) && is_file($file)) {
     return false;
 }
 

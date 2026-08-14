@@ -16,6 +16,7 @@ require_once __DIR__ . "/../../vendor/autoload.php";
 
 use App\Services\VideoParser;
 use App\Services\MediaProxy;
+use App\Services\GameAnalyzer;
 use App\Services\RateLimiter;
 use App\Utils\Response;
 use App\Utils\Config;
@@ -174,7 +175,69 @@ if ($path === "/api/v1/download-proxy" || $path === "/api/v1/download-proxy/") {
     exit;
 }
 
-// POST /api/v1/process — 视频指纹重编码
+// POST /api/v1/game-analysis — 小游戏视频分析（AI 读画面变化 → 口播配音稿）
+if ($path === "/api/v1/game-analysis" || $path === "/api/v1/game-analysis/") {
+    if ($method !== "POST") {
+        Response::error("请使用 POST 请求", 405);
+    }
+    if (Config::get("rate_limit.enabled", true)) {
+        $rateLimitResult = RateLimiter::check($ip);
+        if (!$rateLimitResult["allowed"]) {
+            Response::error("请求过于频繁，请稍后再试", 429);
+        }
+    }
+
+    $input = [];
+    // 1) 文件上传（本地视频）
+    if (!empty($_FILES["video"]) && isset($_FILES["video"]["error"])) {
+        $uploadErr = (int) $_FILES["video"]["error"];
+        if ($uploadErr === UPLOAD_ERR_INI_SIZE || $uploadErr === UPLOAD_ERR_FORM_SIZE) {
+            Response::error("视频文件过大，请上传不超过 " . strtoupper(ini_get("upload_max_filesize")) . "B 的视频后重试", 400);
+        } elseif ($uploadErr !== UPLOAD_ERR_OK && $uploadErr !== UPLOAD_ERR_NO_FILE) {
+            Response::error("视频上传失败（错误码 {$uploadErr}），请重试或更换文件", 400);
+        }
+    }
+    if (!empty($_FILES["video"]) && is_uploaded_file($_FILES["video"]["tmp_name"] ?? "")) {
+        $dst = (Config::get("game_analysis.temp_dir", __DIR__ . "/../../storage/tmp"))
+            . "/upload_" . bin2hex(random_bytes(8)) . ".mp4";
+        if (!move_uploaded_file($_FILES["video"]["tmp_name"], $dst)) {
+            Response::error("视频上传失败", 400);
+        }
+        $input["file"] = $dst;
+    } else {
+        // 2) JSON / 表单 body（demo 或 url）
+        $body = file_get_contents("php://input");
+        $json = ($body !== false && $body !== "") ? json_decode($body, true) : null;
+        if (is_array($json)) {
+            if (!empty($json["demo"])) {
+                $input["demo"] = true;
+            } elseif (!empty($json["url"])) {
+                $input["url"] = trim($json["url"]);
+            }
+        } elseif (!empty($_POST["url"])) {
+            $input["url"] = trim($_POST["url"]);
+        } elseif (!empty($_POST["demo"])) {
+            $input["demo"] = true;
+        }
+    }
+
+    try {
+        $result = GameAnalyzer::analyze($input);
+        if (isset($input["file"]) && is_file($input["file"])) {
+            @unlink($input["file"]);
+        }
+        Response::success($result, "分析完成");
+    } catch (\InvalidArgumentException $e) {
+        Response::error($e->getMessage(), 400);
+    } catch (\RuntimeException $e) {
+        Logger::error("小游戏分析失败", ["error" => $e->getMessage()]);
+        Response::error($e->getMessage(), 500);
+    } catch (\Throwable $e) {
+        Logger::exception($e, ["ip" => $ip]);
+        Response::error("服务器内部错误，请稍后再试", 500);
+    }
+}
+
 // 404
 Response::error("接口不存在", 404);
 

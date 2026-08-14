@@ -104,6 +104,56 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500":
           description: 解析失败
+  /game-analysis:
+    post:
+      summary: 小游戏视频分析，输出口播讲稿
+      description: |
+        三种输入方式（互斥）：
+        - multipart 上传本地视频（字段名 `video`）
+        - JSON body `{"url": "<分享链接>"}`（自动解析后下载分析）
+        - JSON body `{"demo": true}`（离线演示数据，无需 ffmpeg/网络）
+        服务端抽帧并分析画面变化，输出分段口播讲解稿（script）、标题与总结。
+      operationId: gameAnalysis
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                video:
+                  type: string
+                  format: binary
+                  description: 本地视频文件（mp4/mov 等）
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: 短视频分享链接（支持直链）
+                  example: https://v.douyin.com/xxxx/
+                demo:
+                  type: boolean
+                  description: true 时返回离线演示结果
+                  example: true
+      responses:
+        "200":
+          description: 分析完成，返回讲稿与画面分段
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameAnalysisResult"
+        "400":
+          description: 参数错误（无输入 / 非 POST / 文件过大）
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          description: 分析失败（下载失败 / ffmpeg 不可用等）
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -176,3 +226,48 @@ components:
                 music:
                   type: object
                   description: 平台返回的音频信息（可选）
+    GameAnalysisResult:
+      allOf:
+        - $ref: "#/components/schemas/Success"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: 自动生成的视频标题（可作发布标题）
+                duration:
+                  type: number
+                  description: 视频时长（秒）
+                frames:
+                  type: array
+                  description: 关键帧（base64 缩略图），为空表示演示数据
+                  items:
+                    type: object
+                    properties:
+                      t:
+                        type: number
+                        description: 时间点（秒）
+                      image:
+                        type: string
+                        description: base64 编码的 JPEG 缩略图
+                segments:
+                  type: array
+                  description: 画面变化分段
+                  items:
+                    type: object
+                    properties:
+                      t:
+                        type: number
+                      label:
+                        type: string
+                summary:
+                  type: string
+                  description: 视频内容总结
+                script:
+                  type: string
+                  description: 分段口播讲解稿（可直接复制使用）
+                provider:
+                  type: string
+                  description: 分析提供方（heuristic / openai / demo）

@@ -156,6 +156,18 @@ class HttpClient
      */
     public static function getLocation(string $url): string|false
     {
+        // 先尝试 HEAD（开销最小）
+        $loc = self::locationViaHead($url);
+        if ($loc !== false) {
+            return $loc;
+        }
+        // 部分短链服务（如 xhslink.cn）对 HEAD 返回 404、仅 GET 才 302，
+        // 回退为 GET 但只收集响应头、丢弃 body。
+        return self::locationViaGet($url);
+    }
+
+    private static function locationViaHead(string $url): string|false
+    {
         $timeout = Config::get('curl.timeout', 10);
         $connectTimeout = Config::get('curl.connect_timeout', 5);
         $ch = curl_init($url);
@@ -167,15 +179,15 @@ class HttpClient
             CURLOPT_CONNECTTIMEOUT => $connectTimeout,
             CURLOPT_TIMEOUT => $timeout,
         ], self::getSslOptions()));
-        
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        
+
         if ($response === false) {
             return false;
         }
-        
+
         // 解析 Location 头
         if ($httpCode >= 300 && $httpCode < 400 && preg_match('/Location:\s*(.*?)\r?\n/i', $response, $matches)) {
             $location = trim($matches[1]);
@@ -186,7 +198,46 @@ class HttpClient
             }
             return $location;
         }
-        
+
+        return $httpCode === 200 ? $url : false;
+    }
+
+    private static function locationViaGet(string $url): string|false
+    {
+        $headerBuf = '';
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array_replace([
+            CURLOPT_HEADER => false,
+            CURLOPT_NOBODY => false,
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$headerBuf): int {
+                $headerBuf .= $line;
+                return strlen($line);
+            },
+            // 丢弃响应体，仅保留响应头
+            CURLOPT_WRITEFUNCTION => static function ($ch, string $chunk): int {
+                return strlen($chunk);
+            },
+        ], self::getSslOptions()));
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false) {
+            return false;
+        }
+        if ($httpCode >= 300 && $httpCode < 400 && preg_match('/Location:\s*(.*?)\r?\n/i', $headerBuf, $matches)) {
+            $location = trim($matches[1]);
+            if (strpos($location, 'http') !== 0) {
+                $parsed = parse_url($url);
+                $location = ($parsed['scheme'] ?? 'http') . '://' . $parsed['host'] . $location;
+            }
+            return $location;
+        }
         return $httpCode === 200 ? $url : false;
     }
 }

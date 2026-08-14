@@ -4,6 +4,7 @@
 /storage/rate_limit/*.json
 /storage/cache/
 /storage/certs/
+/storage/tmp/
 .DS_Store
 composer.phar
 composer-setup.php

@@ -26,7 +26,7 @@ class VideoParser
         ],
         "xiaohongshu" => [
             "class" => \App\Parsers\XiaohongshuParser::class,
-            "domains" => ["xiaohongshu.com", "xhslink.com"],
+            "domains" => ["xiaohongshu.com", "xhslink.com", "xhslink.cn"],
         ],
     ];
 

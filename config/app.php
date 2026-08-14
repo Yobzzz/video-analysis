@@ -59,5 +59,23 @@ return [
         'file' => __DIR__ . '/../../storage/logs/app.log',
         'max_files' => (int)Config::env('LOG_MAX_FILES', '30'),
     ],
+
+    // 小游戏视频分析（AI 读画面变化 → 生成口播配音稿）
+    'game_analysis' => [
+        'enabled' => Config::env('GAME_ANALYSIS_ENABLED', 'true') !== 'false',
+        'provider' => Config::env('GAME_ANALYSIS_PROVIDER', 'auto'), // auto | heuristic | openai（auto: 配置了 OPENAI_API_KEY 即用视觉模型）
+        // ffmpeg 路径：优先 env，其次自动探测常见安装位置
+        'ffmpeg_bin' => Config::env('GAME_FFMPEG_BIN', Config::env('FFMPEG_BIN', 'ffmpeg')),
+        'frame_interval' => (int)Config::env('GAME_FRAME_INTERVAL', 2),   // 视觉采样间隔(秒)
+        'scene_threshold' => (float)Config::env('GAME_SCENE_THRESHOLD', 0.35), // 场景切换阈值
+        'max_frames' => (int)Config::env('GAME_MAX_FRAMES', 12),          // 抽帧/采样上限
+        'thumb_width' => (int)Config::env('GAME_THUMB_WIDTH', 640),       // 缩略图宽度（视觉模型读图细节）
+        'temp_dir' => Config::env('GAME_TEMP_DIR', __DIR__ . '/../storage/tmp'),
+        'openai' => [
+            'api_key' => Config::env('OPENAI_API_KEY', ''),
+            'base_url' => Config::env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+            'model' => Config::env('GAME_OPENAI_MODEL', 'gpt-4o-mini'),
+        ],
+    ],
 ];
 

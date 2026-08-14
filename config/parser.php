@@ -11,6 +11,7 @@ Config::env('APP_NAME');
 return [
     // 抖音解析器配置
     'douyin' => [
+        'cookie' => Config::env('DOUYIN_COOKIE', ''),
         'node_bin' => Config::env('DOUYIN_NODE_BIN', 'node'),
         'a_bogus_script' => Config::env('DOUYIN_A_BOGUS_SCRIPT', dirname(__DIR__, 2) . '/scripts/a_bogus.js'),
         'a_bogus_port' => (int)Config::env('A_BOGUS_PORT', '9876'),
