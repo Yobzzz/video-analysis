@@ -75,6 +75,10 @@ return [
             'api_key' => Config::env('OPENAI_API_KEY', ''),
             'base_url' => Config::env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
             'model' => Config::env('GAME_OPENAI_MODEL', 'gpt-4o-mini'),
+            // 视觉模型推理（多帧 + 长输出）耗时远高于普通接口；Render 等海外服务器连接国内 API 延迟也高。
+            // 这里放宽超时，避免 10s 触发 Operation timed out。可用环境变量覆盖。
+            'connect_timeout' => (int) Config::env('GAME_OPENAI_CONNECT_TIMEOUT', 15),
+            'timeout' => (int) Config::env('GAME_OPENAI_TIMEOUT', 120),
         ],
     ],
 ];

@@ -114,10 +114,15 @@ PROMPT;
             'max_tokens' => 4000,
         ], JSON_UNESCAPED_UNICODE);
 
+        $visionConnectTimeout = (int) Config::get('game_analysis.openai.connect_timeout', 15);
+        $visionTimeout = (int) Config::get('game_analysis.openai.timeout', 120);
+        $respHeaders = null;
+        // 视觉推理（多帧 + 长输出）耗时远高于普通接口；海外服务器连国内 API 延迟也高。
+        // 放宽超时并用 maxRetries=0（慢请求不应重试，避免重复扣费/重复等待）。
         $resp = HttpClient::request($baseUrl . '/chat/completions', $body, [
             'Content-Type' => 'application/json',
             'Authorization' => 'Bearer ' . $apiKey,
-        ], 2);
+        ], 0, $respHeaders, $visionConnectTimeout, $visionTimeout);
 
         if (!$resp['success']) {
             throw new \RuntimeException('视觉模型请求失败：' . ($resp['error'] ?: 'HTTP ' . ($resp['http_code'] ?? 0)));

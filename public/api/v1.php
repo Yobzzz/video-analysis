@@ -277,6 +277,8 @@ if ($path === "/api/v1/game-test" || $path === "/api/v1/game-test/") {
     $baseUrl = rtrim((string) ($ac["base_url"] ?? "https://api.openai.com/v1"), "/");
     $model = (string) ($ac["model"] ?? "gpt-4o-mini");
     try {
+        $respHeaders = null;
+        // ping 应当很快，但国内 API 从海外服务器连过去握手延迟高，放宽连接/总超时，避免误判"连接失败"。
         $resp = \App\Utils\HttpClient::request(
             $baseUrl . "/chat/completions",
             json_encode([
@@ -288,7 +290,7 @@ if ($path === "/api/v1/game-test" || $path === "/api/v1/game-test/") {
                 "Content-Type" => "application/json",
                 "Authorization" => "Bearer " . $apiKey,
             ],
-            2
+            0, $respHeaders, 15, 30
         );
         if (!$resp["success"]) {
             Response::error("视觉模型连接失败：" . ($resp["error"] ?: "HTTP " . ($resp["http_code"] ?? 0)), 500);

@@ -21,10 +21,10 @@ class HttpClient
      * @param string|null $responseHeaders 通过引用返回原始响应头
      * @return array 返回 ['success' => bool, 'data' => string, 'error' => string, 'http_code' => int]
      */
-    public static function request(string $url, $data = null, array $headers = [], ?int $maxRetries = null, ?string &$responseHeaders = null): array
+    public static function request(string $url, $data = null, array $headers = [], ?int $maxRetries = null, ?string &$responseHeaders = null, ?int $connectTimeout = null, ?int $timeout = null): array
     {
-        $timeout = Config::get('curl.timeout', 10);
-        $connectTimeout = Config::get('curl.connect_timeout', 5);
+        $timeout = $timeout ?? Config::get('curl.timeout', 10);
+        $connectTimeout = $connectTimeout ?? Config::get('curl.connect_timeout', 5);
         $maxRetries = $maxRetries ?? Config::get('curl.max_retries', 3);
         
         for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
