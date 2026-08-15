@@ -482,6 +482,31 @@ a { color: inherit; text-decoration: none; }
   .result-actions .btn { flex: 1 1 calc(50% - 8px); }
 }
 .en{display:none !important}html[lang=en] .zh{display:none !important}html[lang=en] .en{display:inline !important}.lang-btn{width:34px;height:34px;padding:0;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:var(--r);background:transparent;color:var(--muted);font-size:13px;font-weight:700;transition:all var(--motion);cursor:pointer}.lang-btn:hover{background:var(--soft);color:var(--ink)}
+/* ===== AI 视觉模型配置（口播稿分析） ===== */
+.api-config{margin-top:14px;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--soft);overflow:hidden}
+.api-config>summary{list-style:none;cursor:pointer;padding:12px 16px;display:flex;align-items:center;gap:10px;user-select:none}
+.api-config>summary::-webkit-details-marker{display:none}
+.api-config>summary .api-config-icon{width:18px;height:18px;color:var(--theme);flex-shrink:0}
+.api-config>summary .api-config-title{font-size:14px;font-weight:700;color:var(--ink);flex:1}
+.api-config>summary .api-status{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.api-status.is-on{background:var(--success-soft);color:var(--success)}
+.api-status.is-off{background:var(--soft);color:var(--muted);border:1px solid var(--line-strong)}
+.api-config[open]>summary{border-bottom:1px solid var(--line)}
+.api-config-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.api-config-row{display:flex;flex-direction:column;gap:6px}
+.api-config-row label{font-size:12px;font-weight:600;color:var(--muted)}
+.api-config-row input{height:42px;padding:0 12px;border:1px solid var(--line-strong);border-radius:var(--rm);background:var(--paper);color:var(--ink);font-size:13px;font-family:inherit}
+.api-config-row input:focus{outline:none;border-color:var(--theme);box-shadow:0 0 0 3px var(--theme-soft)}
+.api-config-hint{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.api-config-hint code{background:var(--soft);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ink)}
+.api-config-actions{display:flex;gap:8px;flex-wrap:wrap}
+.api-config-actions .btn{height:38px;padding:0 16px;font-size:13px}
+.api-paste-area{width:100%;min-height:72px;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:var(--rm);background:var(--paper);color:var(--ink);font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.5;resize:vertical}
+.api-paste-area:focus{outline:none;border-color:var(--theme);border-style:solid;box-shadow:0 0 0 3px var(--theme-soft)}
+.api-paste-area::placeholder{color:var(--muted3)}
+.api-config-row .paste-hint{font-size:11px;color:var(--muted2);margin:0}
+.api-config-link{font-size:12px;color:var(--theme);text-decoration:none;cursor:pointer;background:none;border:none;padding:0;font-family:inherit}
+.api-config-link:hover{text-decoration:underline}
 /* ===== 口播稿分析 ===== */
 .tabbar{width:min(1200px,calc(100% - 40px));margin:0 auto;padding:14px 0 0;display:flex;gap:8px}
 .tab{appearance:none;border:1px solid var(--line-strong);background:var(--paper);color:var(--muted);padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;transition:all var(--motion);cursor:pointer}
@@ -544,7 +569,7 @@ a { color: inherit; text-decoration: none; }
 <div id="game-view" hidden>
 <main class="workspace">
   <div class="main-column">
-    <section class="intro" aria-labelledby="game-page-title"><span class="eyebrow"></span><h1 id="game-page-title"><span class="zh">口播稿分析</span><span class="en">Voiceover Script</span></h1><p><span class="zh">上传视频或粘贴链接，AI 逐帧理解画面内容，自动输出贴合视频的播音口播稿。</span><span class="en">Upload a clip or paste a link — AI reads every frame and writes a voiceover script.</span></p></section>
+    <section class="intro" aria-labelledby="game-page-title"><span class="eyebrow"></span><h1 id="game-page-title"><span class="zh">上传视频，<em>直接变成</em>口播稿。</span><span class="en">Upload a clip, <em>get</em> a voiceover script.</span></h1><p><span class="zh">粘贴链接或上传本地视频，AI 逐帧读懂画面，自动写出贴合内容的播音口播稿。</span><span class="en">Paste a link or upload a clip — AI reads every frame and writes a voiceover script.</span></p></section>
     <section class="panel ingest-panel" aria-label="口播稿分析入口">
       <div class="panel-heading"><div><p class="panel-kicker"><span class="zh">导入视频</span><span class="en">Import clip</span></p><h2 class="panel-title"><span class="zh">从视频开始</span><span class="en">Start with a Clip</span></h2><p class="panel-note"><span class="zh">支持本地视频文件，或粘贴抖音、快手、B站、小红书、视频号等平台链接。</span><span class="en">Works with local files and links from Douyin, Kuaishou, Bilibili, RED, Channels and more.</span></p></div></div>
       <div id="game-panel">
@@ -556,6 +581,41 @@ a { color: inherit; text-decoration: none; }
           <button id="game-analyze-btn" class="btn btn-primary" type="button"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg><span data-zh="开始分析" data-en="Analyze">开始分析</span></button>
         </div>
       </div>
+      <details class="api-config" id="game-api-config">
+        <summary>
+          <svg class="api-config-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"></path><path d="M9 14l2 2 4-4"></path></svg>
+          <span class="api-config-title"><span class="zh">AI 视觉模型配置</span><span class="en">AI Vision API</span></span>
+          <span class="api-status is-off" id="api-status-badge"><span class="zh">未配置</span><span class="en">Not Set</span></span>
+        </summary>
+        <div class="api-config-body">
+          <p class="api-config-hint"><span class="zh">配置后，AI 会逐帧读画面、按实际内容生成口播稿（贴合视频事实，非套话）。不配置则使用本地启发式模式（按时间轴叙述，不看画面）。支持 OpenAI 兼容接口，如 </span><span class="en">With a configured API, AI reads every frame and writes a content-aware script. Supports any OpenAI-compatible endpoint, e.g. </span><code>OpenAI</code><span class="zh"> / </span><span class="en"> / </span><code>火山方舟</code><span class="zh"> / </span><span class="en"> / </span><code>DeepSeek</code><span class="zh"> 等视觉模型。</span><span class="en"> vision models.</span></p>
+          <div class="api-config-row">
+            <label for="api-paste-area"><span class="zh">批量粘贴（自动识别填入下方）</span><span class="en">Bulk Paste (auto-fill below)</span></label>
+            <textarea id="api-paste-area" class="api-paste-area" spellcheck="false" placeholder="支持以下格式，粘贴后自动识别填入：&#10;1) 多行 key=value：&#10;api_key=sk-xxx&#10;base_url=https://api.openai.com/v1&#10;model=gpt-4o-mini&#10;&#10;2) JSON：{&quot;api_key&quot;:&quot;sk-xxx&quot;,&quot;base_url&quot;:&quot;...&quot;,&quot;model&quot;:&quot;...&quot;}&#10;&#10;3) 按行顺序（Key / URL / Model 各一行）"></textarea>
+            <p class="paste-hint"><span class="zh">粘贴整段配置后自动填入下方三个输入框，也可点「识别填入」手动触发。</span><span class="en">Paste a block to auto-fill the three fields below, or click &quot;Parse&quot; manually.</span></p>
+          </div>
+          <div class="api-config-row">
+            <label for="api-key-input"><span class="zh">API Key</span><span class="en">API Key</span></label>
+            <input id="api-key-input" type="password" autocomplete="off" spellcheck="false" placeholder="sk-... / 火山方舟 UUID">
+          </div>
+          <div class="api-config-row">
+            <label for="api-base-input"><span class="zh">Base URL（接口地址）</span><span class="en">Base URL</span></label>
+            <input id="api-base-input" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1">
+          </div>
+          <div class="api-config-row">
+            <label for="api-model-input"><span class="zh">模型名称</span><span class="en">Model</span></label>
+            <input id="api-model-input" type="text" autocomplete="off" spellcheck="false" placeholder="gpt-4o-mini / doubao-1.5-vision-pro-32k">
+          </div>
+          <div class="api-config-actions">
+            <button id="api-save-btn" class="btn btn-primary" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg><span data-zh="保存配置" data-en="Save">保存配置</span></button>
+            <button id="api-clear-btn" class="btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span data-zh="清空" data-en="Clear">清空</span></button>
+            <button id="api-test-btn" class="btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span data-zh="测试连通" data-en="Test">测试连通</span></button>
+            <button id="api-parse-btn" class="btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg><span data-zh="识别填入" data-en="Parse">识别填入</span></button>
+          </div>
+          <p class="api-config-hint" id="api-test-result" hidden></p>
+          <p class="api-config-hint"><span class="zh">配置只保存在当前浏览器（localStorage），不会上传服务器持久化。每次分析时随请求发给后端调用。</span><span class="en">Stored only in your browser (localStorage). Sent to the backend per request, never persisted server-side.</span></p>
+        </div>
+      </details>
       <div id="game-loading" class="state-row" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="game-loading-text"><span class="zh">正在读取画面、理解操作…</span><span class="en">Reading frames…</span></span></div>
       <div id="game-error" class="error-alert" role="alert" aria-live="assertive" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg><span id="game-error-text"></span></div>
     </section>
@@ -616,18 +676,52 @@ const tabbar=$('#tabbar'),parseView=$('#parse-view'),gameView=$('#game-view');
 const gameUrl=$('#game-url'),gameFile=$('#game-file'),gameFileLabel=$('#game-file-label'),gameDemo=$('#game-demo'),gameAnalyzeBtn=$('#game-analyze-btn');
 const gameLoading=$('#game-loading'),gameLoadingText=$('#game-loading-text'),gameErrorBox=$('#game-error'),gameErrorText=$('#game-error-text');
 const gameResult=$('#game-result'),gameFrames=$('#game-frames'),gameTitleEl=$('#game-title'),gameSummaryEl=$('#game-summary'),gameTimeline=$('#game-timeline'),gameScript=$('#game-script'),gameCharcount=$('#game-charcount'),gameCopyBtn=$('#game-copy-btn');
+/* ===== AI 视觉模型配置（前端自定义 API） ===== */
+const GAME_API_KEY='game-api-config-v1';
+const apiKeyInput=$('#api-key-input'),apiBaseInput=$('#api-base-input'),apiModelInput=$('#api-model-input'),apiSaveBtn=$('#api-save-btn'),apiClearBtn=$('#api-clear-btn'),apiTestBtn=$('#api-test-btn'),apiParseBtn=$('#api-parse-btn'),apiStatusBadge=$('#api-status-badge'),apiTestResult=$('#api-test-result'),apiPasteArea=$('#api-paste-area'),gameApiConfig=$('#game-api-config');
+function loadApiConfig(){try{const x=JSON.parse(localStorage.getItem(GAME_API_KEY)||'null');return x&&typeof x==='object'?x:null}catch(e){return null}}
+function saveApiConfig(c){localStorage.setItem(GAME_API_KEY,JSON.stringify(c))}
+function clearApiConfig(){localStorage.removeItem(GAME_API_KEY)}
+function getApiConfig(){const c=loadApiConfig();if(!c||!c.api_key)return null;return{api_key:c.api_key,base_url:c.base_url||'',model:c.model||''}}
+function updateApiStatus(){const c=getApiConfig();if(c){apiStatusBadge.className='api-status is-on';apiStatusBadge.innerHTML='<span class="zh">已配置</span><span class="en">Ready</span>'}else{apiStatusBadge.className='api-status is-off';apiStatusBadge.innerHTML='<span class="zh">未配置</span><span class="en">Not Set</span>'}}
+/* 批量粘贴自识别：支持 JSON / key=value 多行 / 按行顺序 三种格式 */
+function parseApiConfigText(text){
+  text=String(text||'').trim();
+  if(!text)return null;
+  // 1) JSON 格式
+  if(text.charAt(0)==='{'){try{const j=JSON.parse(text);if(j&&typeof j==='object'){return{api_key:String(j.api_key||j.key||j.apikey||'').trim(),base_url:String(j.base_url||j.baseurl||j.url||'').trim(),model:String(j.model||'').trim()}}}catch(e){}}
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  // 2) key=value / key: value 格式
+  const kv={};let kvHit=false;
+  lines.forEach(l=>{const m=l.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(.+)$/);if(m){kv[m[1].toLowerCase()]=m[2].trim().replace(/^["']|["']$/g,'');kvHit=true}});
+  if(kvHit){return{api_key:String(kv.api_key||kv.key||kv.apikey||'').trim(),base_url:String(kv.base_url||kv.baseurl||kv.url||'').trim(),model:String(kv.model||'').trim()}}
+  // 3) 单行 = 纯 API Key
+  if(lines.length===1){return{api_key:lines[0],base_url:'',model:''}}
+  // 4) 按行顺序：Key / Base URL / Model
+  return{api_key:lines[0]||'',base_url:lines[1]||'',model:lines[2]||''}
+}
+function applyParsedConfig(c){if(!c)return;if(apiKeyInput)apiKeyInput.value=c.api_key||'';if(apiBaseInput)apiBaseInput.value=c.base_url||'';if(apiModelInput)apiModelInput.value=c.model||''}
+if(apiPasteArea){apiPasteArea.addEventListener('paste',()=>{setTimeout(()=>{const c=parseApiConfigText(apiPasteArea.value);if(c){applyParsedConfig(c);apiPasteArea.value='';if(apiTestResult){apiTestResult.hidden=true}}},0)})}
+if(apiParseBtn)apiParseBtn.addEventListener('click',()=>{const c=parseApiConfigText(apiPasteArea?apiPasteArea.value:'');if(!c||!c.api_key){showGameError('粘贴内容未能识别出 API Key，请检查格式');return}applyParsedConfig(c);apiPasteArea.value='';if(apiTestResult)apiTestResult.hidden=true;flashButton(apiParseBtn,'已填入')})
+function fillApiForm(){const c=loadApiConfig()||{};if(apiKeyInput)apiKeyInput.value=c.api_key||'';if(apiBaseInput)apiBaseInput.value=c.base_url||'';if(apiModelInput)apiModelInput.value=c.model||''}
+if(apiSaveBtn)apiSaveBtn.addEventListener('click',()=>{const c={api_key:(apiKeyInput.value||'').trim(),base_url:(apiBaseInput.value||'').trim(),model:(apiModelInput.value||'').trim()};if(!c.api_key){showGameError('请填写 API Key');apiKeyInput.focus();return}saveApiConfig(c);updateApiStatus();flashButton(apiSaveBtn,'已保存');if(apiTestResult)apiTestResult.hidden=true});
+if(apiClearBtn)apiClearBtn.addEventListener('click',()=>{clearApiConfig();fillApiForm();updateApiStatus();if(apiTestResult)apiTestResult.hidden=true});
+if(apiTestBtn)apiTestBtn.addEventListener('click',async()=>{const c=getApiConfig();if(!c){showGameError('请先填写并保存 API Key');return}apiTestBtn.disabled=true;apiTestResult.hidden=false;apiTestResult.textContent='正在测试连通…';apiTestResult.style.color='var(--muted)';try{const r=await fetch('api/v1/game-test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_config:c})});const j=await r.json().catch(()=>null);if(r.ok&&j&&j.success){apiTestResult.textContent='✓ '+(j.message||'连接正常，视觉模型可用');apiTestResult.style.color='var(--success)';setTimeout(()=>{if(gameApiConfig)gameApiConfig.open=false},1500)}else{apiTestResult.textContent='✗ '+(j&&j.message||'测试失败（HTTP '+r.status+'）');apiTestResult.style.color='var(--danger)'}}catch(e){apiTestResult.textContent='✗ '+(e.message||'请求异常');apiTestResult.style.color='var(--danger)'}finally{apiTestBtn.disabled=false}});
+fillApiForm();updateApiStatus();
 if(tabbar){tabbar.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;tabbar.querySelectorAll('.tab').forEach(t=>t.classList.toggle('is-active',t===b));const v=b.dataset.view;parseView.hidden=v!=='parse';gameView.hidden=v!=='game';window.scrollTo({top:0,behavior:'smooth'})})}
 function showGameError(m){gameErrorText.textContent=m;gameErrorBox.hidden=false}
 function gameHideError(){gameErrorBox.hidden=true}
 function gameSetLoading(on,t){gameLoading.hidden=!on;if(t)gameLoadingText.innerHTML=t}
-async function analyzeGame(){gameHideError();gameResult.hidden=true;const useDemo=gameDemo&&gameDemo.checked;const hasFile=gameFile.files&&gameFile.files.length;const url=extractUrl(gameUrl.value);if(!useDemo&&!hasFile&&!url){showGameError('请粘贴视频链接、上传本地视频，或勾选演示数据');return}gameAnalyzeBtn.disabled=true;gameSetLoading(true);try{let resp;if(useDemo){resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({demo:true})})}else if(hasFile){const fd=new FormData();fd.append('video',gameFile.files[0]);resp=await fetch('api/v1/game-analysis',{method:'POST',body:fd})}else{resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})}const j=await resp.json().catch(()=>null);if(!resp.ok||!j||!j.success||!j.data){throw new Error((j&&j.message)||'分析失败')}addGameHistory(j.data,url||(hasFile?gameFile.files[0].name:''));renderGame(j.data)}catch(e){showGameError(e.message||'分析失败')}finally{gameSetLoading(false);gameAnalyzeBtn.disabled=false}}
+async function analyzeGame(){gameHideError();gameResult.hidden=true;const useDemo=gameDemo&&gameDemo.checked;const urlVal=(gameUrl.value||'').trim();const url=extractUrl(urlVal);const isUrl=/^https?:\/\//i.test(url);const hasFile=gameFile.files&&gameFile.files.length;if(!useDemo&&!isUrl&&!hasFile){showGameError('请粘贴视频链接、上传本地视频，或勾选演示数据');return}const apiConfig=getApiConfig();gameAnalyzeBtn.disabled=true;gameSetLoading(true);try{let resp,source='';if(useDemo){resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(apiConfig?{demo:true,api_config:apiConfig}:{demo:true})});source='演示数据'}else if(isUrl){resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(apiConfig?{url,api_config:apiConfig}:{url})});source=url}else{const fd=new FormData();fd.append('video',gameFile.files[0]);if(apiConfig)fd.append('api_config',JSON.stringify(apiConfig));resp=await fetch('api/v1/game-analysis',{method:'POST',body:fd});source=gameFile.files[0].name}const j=await resp.json().catch(()=>null);if(!resp.ok||!j||!j.success||!j.data){throw new Error((j&&j.message)||'分析失败')}addGameHistory(j.data,source);renderGame(j.data)}catch(e){showGameError(e.message||'分析失败')}finally{gameSetLoading(false);gameAnalyzeBtn.disabled=false}}
 function renderGame(d){gameTitleEl.textContent=d.title||'未命名';gameSummaryEl.textContent=d.summary||'';gameFrames.innerHTML='';if(Array.isArray(d.frames)&&d.frames.length){d.frames.forEach(f=>{const cell=document.createElement('div');cell.className='frame-thumb';const img=document.createElement('img');img.src=f.dataUrl;img.alt='帧 @'+f.t+'s';cell.appendChild(img);const badge=document.createElement('span');badge.className='t-badge';badge.textContent=f.t+'s';cell.appendChild(badge);gameFrames.appendChild(cell)})}else if(d.frames){gameFrames.innerHTML='<p class="result-meta">演示模式不抽取画面，可上传本地视频查看抽帧缩略图。</p>'}else{gameFrames.innerHTML='<p class="result-meta">历史记录不包含抽帧画面。</p>'}gameTimeline.innerHTML='';if(Array.isArray(d.segments)){d.segments.forEach(s=>{const item=document.createElement('div');item.className='tl-item '+(s.type||'operation');const dot=document.createElement('span');dot.className='tl-dot';const body=document.createElement('div');body.className='tl-body';const head=document.createElement('div');head.className='tl-head';const label=document.createElement('span');label.className='tl-label';label.textContent=s.label||s.type;const time=document.createElement('span');time.className='tl-time';time.textContent=(s.t_start||0)+'–'+(s.t_end||0)+'s';head.appendChild(label);head.appendChild(time);const desc=document.createElement('p');desc.className='tl-desc';desc.textContent=s.desc||'';body.appendChild(head);body.appendChild(desc);item.appendChild(dot);item.appendChild(body);gameTimeline.appendChild(item)})}gameScript.value=d.script||'';updateGameCount();gameResult.hidden=false;gameResult.scrollIntoView({behavior:'smooth',block:'start'})}
 function updateGameCount(){gameCharcount.textContent=String((gameScript.value||'').length)}
 if(gameScript)gameScript.addEventListener('input',updateGameCount);
 gameAnalyzeBtn.addEventListener('click',analyzeGame);
 // 上传视频：显式触发文件选择框（避免 hidden input + label 在部分浏览器失效），并回显文件名
-
-if(gameFile){gameFile.addEventListener('change',()=>{const f=gameFile.files&&gameFile.files[0];if(f){gameUrl.value=f.name;if(gameDemo)gameDemo.checked=false}else{gameUrl.value=''}})}
+if(gameFileLabel){gameFileLabel.addEventListener('click',e=>{e.preventDefault();gameFile.click()})}
+if(gameFile){gameFile.addEventListener('change',()=>{const f=gameFile.files&&gameFile.files[0];if(f){const sz=(f.size/1048576).toFixed(1);gameUrl.value=f.name;if(gameDemo)gameDemo.checked=false}else{gameUrl.value=''}})}
+// 输入框手动改动：粘贴链接时清空文件残留，避免残留文件覆盖链接导致"一直分析第一个视频"
+if(gameUrl){gameUrl.addEventListener('input',()=>{const v=gameUrl.value.trim();if(/^https?:\/\//i.test(v)||v===''){if(gameFile)gameFile.value=''}});gameUrl.addEventListener('paste',()=>{setTimeout(()=>{if(gameFile)gameFile.value=''},0)})}
 if(gameCopyBtn)gameCopyBtn.addEventListener('click',async()=>{await copyText(gameScript.value);flashButton(gameCopyBtn,'已复制')});
 
 /* ===== 口播稿历史记录 ===== */

@@ -84,7 +84,7 @@ class GameAnalyzer
                 'author' => $platformInfo['author'] ?? '',
                 'cover' => $platformInfo['cover'] ?? '',
             ];
-            $provider = self::makeProvider();
+            $provider = self::makeProvider($input['api_config'] ?? []);
             $analysis = $provider->analyze($videoFile, $meta);
 
             if (empty($analysis['script'])) {
@@ -220,8 +220,22 @@ class GameAnalyzer
         return false;
     }
 
-    private static function makeProvider(): VisionProviderInterface
+    /**
+     * 选择视觉 Provider
+     *
+     * 优先级：前端用户自定义 api_config（api_key 非空）> 全局配置（GAME_ANALYSIS_PROVIDER + OPENAI_API_KEY）
+     * 用户在前端填入自己的 API Key 时，覆盖全局配置，让每个用户用自己的视觉模型额度。
+     *
+     * @param array $overrides 前端传入的用户自定义配置 ['api_key'=>, 'base_url'=>, 'model'=>]
+     */
+    private static function makeProvider(array $overrides = []): VisionProviderInterface
     {
+        // 前端用户自定义了 API Key → 直接启用视觉模型（覆盖全局 provider 配置）
+        $userKey = (string) ($overrides['api_key'] ?? '');
+        if ($userKey !== '') {
+            return new OpenAIVisionProvider($overrides);
+        }
+
         $provider = (string) Config::get('game_analysis.provider', 'auto');
         $key = (string) (Config::get('game_analysis.openai', [])['api_key'] ?? '');
         // auto：配置了 API Key 时自动启用视觉模型（真正读画面理解内容）

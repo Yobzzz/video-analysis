@@ -19,6 +19,17 @@ class OpenAIVisionProvider implements VisionProviderInterface
 {
     private const ALLOWED = ['operation', 'trap', 'fail', 'clear'];
 
+    /**
+     * 用户在前端自定义传入的 API 配置（优先级高于 config/app.php）
+     * 结构：['api_key'=>string, 'base_url'=>string, 'model'=>string]
+     */
+    private array $overrides;
+
+    public function __construct(array $overrides = [])
+    {
+        $this->overrides = $overrides;
+    }
+
     private const SYSTEM_PROMPT = <<<PROMPT
 你是一个短视频内容分析师兼口播稿编剧，负责把一段视频"看懂"并写成播音稿。
 
@@ -52,12 +63,13 @@ PROMPT;
     public function analyze(string $videoFile, array $meta): array
     {
         $cfg = Config::get('game_analysis.openai', []);
-        $apiKey = (string) ($cfg['api_key'] ?? '');
+        // 前端用户自定义配置优先于全局配置（允许每个用户用自己的 API Key）
+        $apiKey = (string) ($this->overrides['api_key'] ?? $cfg['api_key'] ?? '');
         if ($apiKey === '') {
-            throw new \RuntimeException('未配置 OPENAI_API_KEY，无法使用视觉模型');
+            throw new \RuntimeException('未配置 API Key，无法使用视觉模型。可在页面上方「AI 视觉模型配置」填入自己的 OpenAI 兼容 API Key。');
         }
-        $baseUrl = rtrim((string) ($cfg['base_url'] ?? 'https://api.openai.com/v1'), '/');
-        $model = (string) ($cfg['model'] ?? 'gpt-4o-mini');
+        $baseUrl = rtrim((string) ($this->overrides['base_url'] ?? $cfg['base_url'] ?? 'https://api.openai.com/v1'), '/');
+        $model = (string) ($this->overrides['model'] ?? $cfg['model'] ?? 'gpt-4o-mini');
 
         $frames = $meta['frames'] ?? [];
         if (empty($frames)) {

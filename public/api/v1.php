@@ -188,6 +188,9 @@ if ($path === "/api/v1/game-analysis" || $path === "/api/v1/game-analysis/") {
     }
 
     $input = [];
+    // 前端用户自定义的 AI 视觉模型配置（api_key / base_url / model），优先于全局 config
+    $apiConfig = null;
+
     // 1) 文件上传（本地视频）
     if (!empty($_FILES["video"]) && isset($_FILES["video"]["error"])) {
         $uploadErr = (int) $_FILES["video"]["error"];
@@ -204,6 +207,13 @@ if ($path === "/api/v1/game-analysis" || $path === "/api/v1/game-analysis/") {
             Response::error("视频上传失败", 400);
         }
         $input["file"] = $dst;
+        // 文件上传时 api_config 走 FormData 字段（JSON 字符串）
+        if (!empty($_POST["api_config"])) {
+            $ac = json_decode($_POST["api_config"], true);
+            if (is_array($ac)) {
+                $apiConfig = $ac;
+            }
+        }
     } else {
         // 2) JSON / 表单 body（demo 或 url）
         $body = file_get_contents("php://input");
@@ -214,11 +224,24 @@ if ($path === "/api/v1/game-analysis" || $path === "/api/v1/game-analysis/") {
             } elseif (!empty($json["url"])) {
                 $input["url"] = trim($json["url"]);
             }
+            // JSON body 中的 api_config 对象
+            if (isset($json["api_config"]) && is_array($json["api_config"])) {
+                $apiConfig = $json["api_config"];
+            }
         } elseif (!empty($_POST["url"])) {
             $input["url"] = trim($_POST["url"]);
         } elseif (!empty($_POST["demo"])) {
             $input["demo"] = true;
         }
+    }
+
+    // 透传用户自定义 API 配置给 GameAnalyzer（仅保留白名单字段，避免注入）
+    if (is_array($apiConfig)) {
+        $input["api_config"] = [
+            "api_key"  => (string) ($apiConfig["api_key"] ?? ""),
+            "base_url" => (string) ($apiConfig["base_url"] ?? ""),
+            "model"    => (string) ($apiConfig["model"] ?? ""),
+        ];
     }
 
     try {
@@ -235,6 +258,46 @@ if ($path === "/api/v1/game-analysis" || $path === "/api/v1/game-analysis/") {
     } catch (\Throwable $e) {
         Logger::exception($e, ["ip" => $ip]);
         Response::error("服务器内部错误，请稍后再试", 500);
+    }
+}
+
+// POST /api/v1/game-test — 验证用户自定义 AI 视觉模型配置连通性
+// 接收 {api_config:{api_key, base_url, model}}，发一个最小 chat completions ping
+if ($path === "/api/v1/game-test" || $path === "/api/v1/game-test/") {
+    if ($method !== "POST") {
+        Response::error("请使用 POST 请求", 405);
+    }
+    $body = file_get_contents("php://input");
+    $json = ($body !== false && $body !== "") ? json_decode($body, true) : null;
+    $ac = is_array($json) && isset($json["api_config"]) && is_array($json["api_config"]) ? $json["api_config"] : null;
+    if (!$ac || empty($ac["api_key"])) {
+        Response::error("请提供 api_config（含 api_key）", 400);
+    }
+    $apiKey = (string) $ac["api_key"];
+    $baseUrl = rtrim((string) ($ac["base_url"] ?? "https://api.openai.com/v1"), "/");
+    $model = (string) ($ac["model"] ?? "gpt-4o-mini");
+    try {
+        $resp = \App\Utils\HttpClient::request(
+            $baseUrl . "/chat/completions",
+            json_encode([
+                "model" => $model,
+                "messages" => [["role" => "user", "content" => "ping"]],
+                "max_tokens" => 5,
+            ], JSON_UNESCAPED_UNICODE),
+            [
+                "Content-Type" => "application/json",
+                "Authorization" => "Bearer " . $apiKey,
+            ],
+            2
+        );
+        if (!$resp["success"]) {
+            Response::error("视觉模型连接失败：" . ($resp["error"] ?: "HTTP " . ($resp["http_code"] ?? 0)), 500);
+        }
+        Response::success(["model" => $model], "连接正常，视觉模型可用");
+    } catch (\RuntimeException $e) {
+        Response::error($e->getMessage(), 500);
+    } catch (\Throwable $e) {
+        Response::error("测试异常：" . $e->getMessage(), 500);
     }
 }
 
