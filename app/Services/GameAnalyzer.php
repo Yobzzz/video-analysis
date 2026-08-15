@@ -167,16 +167,51 @@ class GameAnalyzer
         $tempDir = self::tempDir();
         $dst = $tempDir . '/game_' . bin2hex(random_bytes(8)) . '.mp4';
         $host = strtolower((string) parse_url($cdnUrl, PHP_URL_HOST));
-        $resp = HttpClient::request($cdnUrl, null, [
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-            'Referer' => MediaProxy::refererForHost($host),
-        ], 2);
-        if (!$resp['success'] || empty($resp['data'])) {
-            $hint = self::downloadHint($url);
-            throw new \RuntimeException('视频下载失败：' . ($resp['error'] ?: '空响应') . $hint);
+        $referer = MediaProxy::refererForHost($host);
+        // 直接用 curl 下载到文件，header/SSL 选项对齐 MediaProxy::stream（已验证可绕过抖音/小红书 CDN 防盗链）。
+        // 此前用 HttpClient::request 下载抖音直链会 403：缺 Accept 头 + SSL 严格验证被 CDN 拒绝。
+        $dlHeaders = [
+            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            'Accept: */*',
+            'Referer: ' . $referer,
+        ];
+        // 抖音 CDN 风控：服务器端下载需带 Cookie（若已配置 DOUYIN_COOKIE），否则部分节点直接 403
+        if (preg_match('/douyinvod\.com|douyinpic\.com|zjcdn\.com|bytecdn|byteimg|douyin\.com/i', $host)) {
+            $dyCookie = (string) Config::get('douyin.cookie', '');
+            if ($dyCookie !== '') {
+                $dlHeaders[] = 'Cookie: ' . $dyCookie;
+            }
         }
-        file_put_contents($dst, $resp['data']);
-        if (!is_file($dst) || filesize($dst) < 1024 || !self::looksLikeVideo($resp['data'])) {
+        $fp = @fopen($dst, 'wb');
+        if (!$fp) {
+            throw new \RuntimeException('无法创建临时文件用于下载视频');
+        }
+        $ch = curl_init($cdnUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_FILE => $fp,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_AUTOREFERER => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_CONNECTTIMEOUT => 15,
+            CURLOPT_TIMEOUT => 120,
+            CURLOPT_HTTPHEADER => $dlHeaders,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+        ]);
+        curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        fclose($fp);
+        if ($httpCode !== 200 || !is_file($dst) || filesize($dst) < 1024) {
+            @unlink($dst);
+            $hint = self::downloadHint($url);
+            $errDetail = $curlErr ?: ('HTTP ' . $httpCode);
+            throw new \RuntimeException('视频下载失败：' . $errDetail . $hint);
+        }
+        // 校验文件头是否视频容器（mp4/mov/flv/webm/mkv/avi/mpeg-ts）
+        $headData = file_get_contents($dst, false, null, 0, 64);
+        if (!self::looksLikeVideo($headData)) {
             @unlink($dst);
             $hint = self::downloadHint($url);
             throw new \RuntimeException('下载内容不是可解析的视频文件（可能是网页被风控拦截）' . $hint);
