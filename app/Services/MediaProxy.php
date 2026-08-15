@@ -142,9 +142,9 @@ class MediaProxy
                 $curlOptions[CURLOPT_RESOLVE] = $resolveEntries;
             }
 
-            // Render 容器 DNS 可能无法解析中国 CDN，使用公共 DNS 兜底
+            // 使用系统 DNS 解析（与 download-proxy 一致）。
+            // 不再强制公共 DNS：8.8.8.8 会把中国图片 CDN 解析到海外不可达节点 → 502。
             $curlOptions[CURLOPT_DNS_CACHE_TIMEOUT] = 300;
-            $curlOptions[CURLOPT_DNS_SERVERS] = '8.8.8.8,1.1.1.1';
             $curlOptions[CURLOPT_TIMEOUT] = 30;
             $curlOptions[CURLOPT_CONNECTTIMEOUT] = 10;
 
