@@ -238,8 +238,11 @@ if ($path === "/api/v1/game-analysis" || $path === "/api/v1/game-analysis/") {
         }
     }
     if (!empty($_FILES["video"]) && is_uploaded_file($_FILES["video"]["tmp_name"] ?? "")) {
-        $dst = (Config::get("game_analysis.temp_dir", __DIR__ . "/../../storage/tmp"))
-            . "/upload_" . bin2hex(random_bytes(8)) . ".mp4";
+        $tempDir = Config::get("game_analysis.temp_dir", __DIR__ . "/../../storage/tmp");
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0777, true);
+        }
+        $dst = rtrim($tempDir, "/") . "/upload_" . bin2hex(random_bytes(8)) . ".mp4";
         if (!move_uploaded_file($_FILES["video"]["tmp_name"], $dst)) {
             Response::error("视频上传失败", 400);
         }
