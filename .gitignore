@@ -5,6 +5,8 @@
 /storage/cache/
 /storage/certs/
 /storage/tmp/
+/storage/jobs/
+/storage/uploads/
 .DS_Store
 composer.phar
 composer-setup.php

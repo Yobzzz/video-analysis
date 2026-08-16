@@ -47,6 +47,9 @@ RUN sed -i 's/^listen = .*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/ww
     && sed -i '/^listen.allowed_clients/d' /usr/local/etc/php-fpm.d/www.conf \
     && echo 'php_admin_value[error_log] = /dev/stderr' >> /usr/local/etc/php-fpm.d/www.conf \
     && echo 'php_admin_value[max_execution_time] = 900' >> /usr/local/etc/php-fpm.d/www.conf \
+    && echo 'php_admin_value[max_input_time] = 900' >> /usr/local/etc/php-fpm.d/www.conf \
+    && echo 'php_admin_value[upload_max_filesize] = 100M' >> /usr/local/etc/php-fpm.d/www.conf \
+    && echo 'php_admin_value[post_max_size] = 120M' >> /usr/local/etc/php-fpm.d/www.conf \
     && echo 'php_admin_flag[log_errors] = on' >> /usr/local/etc/php-fpm.d/www.conf
 
 # 配置 Supervisor

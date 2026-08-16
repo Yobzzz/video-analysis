@@ -22,9 +22,10 @@ class GameAnalyzer
 {
     /**
      * @param array $input ['url'=>string] | ['file'=>string 本地路径] | ['demo'=>true]
+     * @param callable|null $onProgress ($stage, $pct, $text) 进度回调，异步任务用于写回进度
      * @return array 结构化结果
      */
-    public static function analyze(array $input): array
+    public static function analyze(array $input, ?callable $onProgress = null): array
     {
         if (!empty($input['demo'])) {
             return self::demo();
@@ -41,6 +42,7 @@ class GameAnalyzer
         }
 
         $platformInfo = [];
+        $onProgress && $onProgress('downloading', 15, '正在下载视频…');
         $videoFile = self::resolveVideoFile($input, $platformInfo);
         $downloaded = ($videoFile !== ($input['file'] ?? null));
 
@@ -49,6 +51,8 @@ class GameAnalyzer
             if (!$ffmpeg->available()) {
                 throw new \RuntimeException('未找到 ffmpeg，无法抽取画面');
             }
+
+            $onProgress && $onProgress('extracting', 45, '正在抽帧分析画面…');
 
             $tempDir = self::tempDir();
             $interval = (int) Config::get('game_analysis.frame_interval', 2);
@@ -84,8 +88,10 @@ class GameAnalyzer
                 'author' => $platformInfo['author'] ?? '',
                 'cover' => $platformInfo['cover'] ?? '',
             ];
+            $onProgress && $onProgress('analyzing', 75, 'AI 正在理解画面内容…');
             $provider = self::makeProvider($input['api_config'] ?? []);
             $analysis = $provider->analyze($videoFile, $meta);
+            $onProgress && $onProgress('finalizing', 90, '正在生成口播稿…');
 
             if (empty($analysis['script'])) {
                 $narration = GameNarrationGenerator::generate($analysis, $meta);

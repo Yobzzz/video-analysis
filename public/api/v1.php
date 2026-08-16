@@ -17,6 +17,7 @@ require_once __DIR__ . "/../../vendor/autoload.php";
 use App\Services\VideoParser;
 use App\Services\MediaProxy;
 use App\Services\GameAnalyzer;
+use App\Services\GameJob;
 use App\Services\RateLimiter;
 use App\Utils\Response;
 use App\Utils\Config;
@@ -73,6 +74,42 @@ if ($path !== "/api/v1/health" && $path !== "/api/v1/health/") {
             Response::error("无效或缺失 API Key", 401);
         }
     }
+}
+
+// ---- 后台拉起异步 worker ----
+// 创建任务后脱离 php-fpm 请求进程组运行，使长耗时分析不再阻塞 HTTP 连接（根治移动端 499 超时）。
+function spawnGameWorker(string $jobId): bool
+{
+    // 生产镜像（php:8.2-fpm）自带 /usr/local/bin/php CLI；本地回退到 PHP_BINARY。
+    $phpBin = '/usr/local/bin/php';
+    if (!is_executable($phpBin)) {
+        $phpBin = PHP_BINARY ?: 'php';
+    }
+    $root = dirname(__DIR__, 2); // public/api → 仓库根
+    $workerPath = $root . '/bin/worker.php';
+    $logPath = $root . '/storage/jobs/' . $jobId . '.worker.log';
+    // 校验依赖存在，否则走同步兜底，避免任务被静默卡在 pending。
+    if (!is_file($workerPath) || !is_executable($phpBin)) {
+        return false;
+    }
+    $worker = escapeshellarg($workerPath);
+    $id = escapeshellarg($jobId);
+    $log = escapeshellarg($logPath);
+
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        // Windows 仅为本地联调：start /B 不阻塞父进程
+        $cmd = 'start /B ' . escapeshellarg($phpBin) . ' ' . $worker . ' ' . $id . ' > ' . $log . ' 2>&1';
+        $h = @popen($cmd, 'r');
+        if ($h) {
+            pclose($h);
+            return true;
+        }
+        return false;
+    }
+    // Linux：setsid 新建会话，配合 & 彻底脱离 php-fpm 进程组
+    $cmd = 'setsid ' . escapeshellarg($phpBin) . ' ' . $worker . ' ' . $id . ' > ' . $log . ' 2>&1 &';
+    @exec($cmd);
+    return true;
 }
 
 // ---- Routes ----
@@ -244,21 +281,31 @@ if ($path === "/api/v1/game-analysis" || $path === "/api/v1/game-analysis/") {
         ];
     }
 
-    try {
-        $result = GameAnalyzer::analyze($input);
-        if (isset($input["file"]) && is_file($input["file"])) {
-            @unlink($input["file"]);
-        }
-        Response::success($result, "分析完成");
-    } catch (\InvalidArgumentException $e) {
-        Response::error($e->getMessage(), 400);
-    } catch (\RuntimeException $e) {
-        Logger::error("小游戏分析失败", ["error" => $e->getMessage()]);
-        Response::error($e->getMessage(), 500);
-    } catch (\Throwable $e) {
-        Logger::exception($e, ["ip" => $ip]);
-        Response::error("服务器内部错误，请稍后再试", 500);
+    // 改为异步：创建任务 → 后台 worker 执行 → 立即返回 job_id（202），前端轮询进度。
+    // 这样长耗时分析（下载 + 抽帧 + 视觉模型）不再阻塞 HTTP 连接，移动端不会再 499 超时。
+    $jobId = GameJob::create($input);
+    if (!spawnGameWorker($jobId)) {
+        // 兜底：exec/setsid 不可用时同步执行（罕见），结果直接写入任务文件，前端轮询会立即读到完成。
+        GameJob::run($jobId);
     }
+    Response::success(["job_id" => $jobId], "已创建分析任务，正在后台处理", 202);
+}
+
+// GET /api/v1/game-job/{id} — 轮询异步任务进度 / 结果
+if (preg_match('#^/api/v1/game-job/([A-Za-z0-9_\-]+)$#', $path, $m)) {
+    if ($method !== "GET") {
+        Response::error("请使用 GET 请求", 405);
+    }
+    $job = GameJob::get($m[1]);
+    if (!$job) {
+        Response::error("任务不存在或已过期", 404);
+    }
+    // 超时保护：处理中超过 20 分钟未更新视为 worker 崩溃，标记失败，避免前端无限轮询。
+    if ($job["status"] === GameJob::STATUS_PROCESSING && (time() - (int) ($job["updatedAt"] ?? 0)) > 1200) {
+        GameJob::fail($m[1], "分析超时（超过 20 分钟未完成，请重试或换更小的视频）");
+        $job = GameJob::get($m[1]);
+    }
+    Response::success($job, "ok");
 }
 
 // POST /api/v1/game-test — 验证用户自定义 AI 视觉模型配置连通性

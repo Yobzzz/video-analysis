@@ -281,6 +281,13 @@ a { color: inherit; text-decoration: none; }
   background: var(--danger-soft); color: var(--danger); font-size: 13px;
 }
 .error-alert svg { flex: 0 0 auto; margin-top: 2px; }
+/* 口播稿异步分析进度条 */
+.state-row-progress { flex-wrap: wrap; }
+.progress-wrap { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px; }
+.progress-track { flex: 1 1 auto; height: 8px; border-radius: 999px; background: var(--line-strong); overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, var(--theme), #7c8cff); transition: width .4s ease; }
+.progress-pct { flex: 0 0 auto; min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--theme); font-size: 12px; }
+:root.dark .progress-track { background: #2a2a38; }
 /* Result Panel */
 .result-panel, .batch-panel { margin-top: 28px; overflow: hidden; padding: 0 28px; }
 .result-layout {
@@ -616,7 +623,7 @@ a { color: inherit; text-decoration: none; }
           <p class="api-config-hint"><span class="zh">配置只保存在当前浏览器（localStorage），不会上传服务器持久化。每次分析时随请求发给后端调用。</span><span class="en">Stored only in your browser (localStorage). Sent to the backend per request, never persisted server-side.</span></p>
         </div>
       </details>
-      <div id="game-loading" class="state-row" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="game-loading-text"><span class="zh">正在读取画面、理解操作…</span><span class="en">Reading frames…</span></span></div>
+      <div id="game-loading" class="state-row state-row-progress" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="game-loading-text"><span class="zh">正在排队分析…</span><span class="en">Queued…</span></span><div class="progress-wrap" id="game-progress-wrap" hidden><div class="progress-track"><div class="progress-fill" id="game-progress-fill"></div></div><span class="progress-pct" id="game-progress-pct">0%</span></div></div>
       <div id="game-error" class="error-alert" role="alert" aria-live="assertive" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg><span id="game-error-text"></span></div>
     </section>
     <section id="game-result" class="panel result-panel" hidden aria-label="分析结果">
@@ -712,7 +719,29 @@ if(tabbar){tabbar.addEventListener('click',e=>{const b=e.target.closest('.tab');
 function showGameError(m){gameErrorText.textContent=m;gameErrorBox.hidden=false}
 function gameHideError(){gameErrorBox.hidden=true}
 function gameSetLoading(on,t){gameLoading.hidden=!on;if(t)gameLoadingText.innerHTML=t}
-async function analyzeGame(){gameHideError();gameResult.hidden=true;const useDemo=gameDemo&&gameDemo.checked;const urlVal=(gameUrl.value||'').trim();const url=extractUrl(urlVal);const isUrl=/^https?:\/\//i.test(url);const hasFile=gameFile.files&&gameFile.files.length;if(!useDemo&&!isUrl&&!hasFile){showGameError('请粘贴视频链接、上传本地视频，或勾选演示数据');return}const apiConfig=getApiConfig();gameAnalyzeBtn.disabled=true;gameSetLoading(true);try{let resp,source='';if(useDemo){resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(apiConfig?{demo:true,api_config:apiConfig}:{demo:true})});source='演示数据'}else if(isUrl){resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(apiConfig?{url,api_config:apiConfig}:{url})});source=url}else{const fd=new FormData();fd.append('video',gameFile.files[0]);if(apiConfig)fd.append('api_config',JSON.stringify(apiConfig));resp=await fetch('api/v1/game-analysis',{method:'POST',body:fd});source=gameFile.files[0].name}const j=await resp.json().catch(()=>null);if(!resp.ok||!j||!j.success||!j.data){throw new Error((j&&j.message)||'分析失败')}addGameHistory(j.data,source);renderGame(j.data)}catch(e){showGameError(e.message||'分析失败')}finally{gameSetLoading(false);gameAnalyzeBtn.disabled=false}}
+/* ===== 异步任务轮询 ===== */
+let gamePollTimer=null,gamePolling=false,pollGameJobSource='';
+function gameSetProgress(pct,text){const wrap=$('#game-progress-wrap'),fill=$('#game-progress-fill'),pctEl=$('#game-progress-pct');if(wrap)wrap.hidden=false;if(fill)fill.style.width=(pct||0)+'%';if(pctEl)pctEl.textContent=(pct||0)+'%';if(text)gameLoadingText.innerHTML=text}
+function stopGamePolling(){if(gamePollTimer){clearTimeout(gamePollTimer);gamePollTimer=null}gamePolling=false}
+async function pollGameJob(jobId){
+  if(gamePolling)return;
+  gamePolling=true;
+  const tick=async()=>{
+    if(!gamePolling)return;
+    try{
+      const r=await fetch('api/v1/game-job/'+encodeURIComponent(jobId),{method:'GET',headers:{'Content-Type':'application/json'}});
+      const j=await r.json().catch(()=>null);
+      if(!r.ok||!j||!j.success||!j.data){throw new Error((j&&j.message)||'查询任务状态失败')}
+      const d=j.data;
+      if(d.status==='completed'){stopGamePolling();gameSetLoading(false);if(d.result){addGameHistory(d.result,pollGameJobSource);renderGame(d.result)}else{showGameError('分析结果为空')}return}
+      if(d.status==='failed'){stopGamePolling();gameSetLoading(false);showGameError(d.error||'分析失败，请重试');return}
+      gameSetProgress(d.progress||0,'<span class="zh">'+(esc(d.stageText)||'正在分析…')+'</span>');
+      gamePollTimer=setTimeout(tick,2000);
+    }catch(e){stopGamePolling();gameSetLoading(false);showGameError(e.message||'分析失败，请稍后再试')}
+  };
+  tick();
+}
+async function analyzeGame(){stopGamePolling();gameHideError();gameResult.hidden=true;const useDemo=gameDemo&&gameDemo.checked;const urlVal=(gameUrl.value||'').trim();const url=extractUrl(urlVal);const isUrl=/^https?:\/\//i.test(url);const hasFile=gameFile.files&&gameFile.files.length;if(!useDemo&&!isUrl&&!hasFile){showGameError('请粘贴视频链接、上传本地视频，或勾选演示数据');return}const apiConfig=getApiConfig();gameAnalyzeBtn.disabled=true;gameSetLoading(true);gameSetProgress(2,'<span class="zh">已提交，排队中…</span>');try{let resp,source='';if(useDemo){resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(apiConfig?{demo:true,api_config:apiConfig}:{demo:true})});source='演示数据'}else if(isUrl){resp=await fetch('api/v1/game-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(apiConfig?{url,api_config:apiConfig}:{url})});source=url}else{const fd=new FormData();fd.append('video',gameFile.files[0]);if(apiConfig)fd.append('api_config',JSON.stringify(apiConfig));resp=await fetch('api/v1/game-analysis',{method:'POST',body:fd});source=gameFile.files[0].name}if(resp.status===413){throw new Error('视频文件过大，请上传小于 120MB 的视频')}const j=await resp.json().catch(()=>null);if(!resp.ok||!j||!j.success||!j.data||!j.data.job_id){throw new Error((j&&j.message)||'提交分析任务失败')}pollGameJobSource=source;gameSetProgress(5,'<span class="zh">已创建任务，后台分析中…</span>');await pollGameJob(j.data.job_id)}catch(e){stopGamePolling();gameSetLoading(false);showGameError(e.message||'分析失败')}finally{gameAnalyzeBtn.disabled=false}}
 function renderGame(d){gameTitleEl.textContent=d.title||'未命名';gameSummaryEl.textContent=d.summary||'';gameFrames.innerHTML='';if(Array.isArray(d.frames)&&d.frames.length){d.frames.forEach(f=>{const cell=document.createElement('div');cell.className='frame-thumb';const img=document.createElement('img');img.src=f.dataUrl;img.alt='帧 @'+f.t+'s';cell.appendChild(img);const badge=document.createElement('span');badge.className='t-badge';badge.textContent=f.t+'s';cell.appendChild(badge);gameFrames.appendChild(cell)})}else if(d.frames){gameFrames.innerHTML='<p class="result-meta">演示模式不抽取画面，可上传本地视频查看抽帧缩略图。</p>'}else{gameFrames.innerHTML='<p class="result-meta">历史记录不包含抽帧画面。</p>'}gameTimeline.innerHTML='';if(Array.isArray(d.segments)){d.segments.forEach(s=>{const item=document.createElement('div');item.className='tl-item '+(s.type||'operation');const dot=document.createElement('span');dot.className='tl-dot';const body=document.createElement('div');body.className='tl-body';const head=document.createElement('div');head.className='tl-head';const label=document.createElement('span');label.className='tl-label';label.textContent=s.label||s.type;const time=document.createElement('span');time.className='tl-time';time.textContent=(s.t_start||0)+'–'+(s.t_end||0)+'s';head.appendChild(label);head.appendChild(time);const desc=document.createElement('p');desc.className='tl-desc';desc.textContent=s.desc||'';body.appendChild(head);body.appendChild(desc);item.appendChild(dot);item.appendChild(body);gameTimeline.appendChild(item)})}gameScript.value=d.script||'';updateGameCount();gameResult.hidden=false;gameResult.scrollIntoView({behavior:'smooth',block:'start'})}
 function updateGameCount(){gameCharcount.textContent=String((gameScript.value||'').length)}
 if(gameScript)gameScript.addEventListener('input',updateGameCount);
