@@ -104,22 +104,25 @@ class XiaohongshuParser extends AbstractParser
             $cover = $fi['urlPre'] ?? $fi['urlDefault'] ?? $fi['url'] ?? '';
         }
 
-        // 视频 URL
+        // 视频 URL —— 优先取无水印原片 key（originVideoKey），
+        // masterUrl 是小红书带水印的流式播放地址，只能作为兜底。
         $videoUrl = '';
         if ($type === 'video') {
-            $streams = [];
-            foreach (['h265', 'h264'] as $codec) {
-                foreach (($note['video']['media']['stream'][$codec] ?? []) as $s) {
-                    $s['_codec'] = $codec;
-                    $streams[] = $s;
+            if (!empty($note['video']['consumer']['originVideoKey'])) {
+                $videoUrl = 'https://sns-video-bd.xhscdn.com/' . $note['video']['consumer']['originVideoKey'];
+            }
+            if (!$videoUrl) {
+                $streams = [];
+                foreach (['h265', 'h264'] as $codec) {
+                    foreach (($note['video']['media']['stream'][$codec] ?? []) as $s) {
+                        $s['_codec'] = $codec;
+                        $streams[] = $s;
+                    }
                 }
-            }
-            if ($streams) {
-                usort($streams, fn($a, $b) => ($b['avgBitrate'] ?? 0) - ($a['avgBitrate'] ?? 0));
-                $videoUrl = $streams[0]['masterUrl'] ?? '';
-            }
-            if (!$videoUrl && isset($note['video']['consumer']['originVideoKey'])) {
-                $videoUrl = 'http://sns-video-bd.xhscdn.com/' . $note['video']['consumer']['originVideoKey'];
+                if ($streams) {
+                    usort($streams, fn($a, $b) => ($b['avgBitrate'] ?? 0) - ($a['avgBitrate'] ?? 0));
+                    $videoUrl = $streams[0]['masterUrl'] ?? '';
+                }
             }
         }
 
